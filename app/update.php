@@ -1,0 +1,524 @@
+<?php
+	require '../config/config.php';
+	if(empty($_SESSION['username']))
+		header('Location: login.php');
+
+		if ( isset($_GET['id'])) {
+			$id = $_REQUEST['id'];
+		}
+
+		if ( isset($_GET['act'])) {
+			$active = $_REQUEST['act'];
+
+			if ($active === 'ap') {
+				# code...
+				try {
+					$stmt = $connect->prepare('SELECT * FROM room_rental_registrations_apartment where id = :id');
+					$stmt->execute(array(
+						':id' => $id
+					));
+					$data = $stmt->fetch(PDO::FETCH_ASSOC);
+				}catch(PDOException $e) {
+					$errMsg = $e->getMessage();
+				}
+			}else{
+				try{
+					$stmt = $connect->prepare('SELECT * FROM room_rental_registrations where id = :id');
+					$stmt->execute(array(
+						':id' => $id
+					));
+					$data = $stmt->fetch(PDO::FETCH_ASSOC);
+				}catch(PDOException $e) {
+					echo $e->getMessage();
+				}
+			}
+		}
+
+		if(isset($_POST['register_individuals'])) {
+			$errMsg = '';
+			// Get data from FROM
+			$fullname = $_POST['fullname'];
+			$email = $_POST['email'];
+			$mobile = $_POST['mobile'];
+			$alternat_mobile = $_POST['alternat_mobile'];
+			$plot_number = $_POST['plot_number'];
+			$country = $_POST['country'];
+			$state = $_POST['state'];
+			$city = $_POST['city'];
+			$address = $_POST['address'];
+			$landmark = $_POST['landmark'];
+			$rent = $_POST['rent'];
+			$deposit = $_POST['deposit'];
+			$description = $_POST['description'];
+			//$open_for_sharing = $_POST['open_for_sharing'];
+			$user_id = $_SESSION['id'];
+			$accommodation = $_POST['accommodation'];
+			//$image = $_POST['image']?$_POST['image']:NULL;
+			$other = $_POST['other'];
+			$vacant = $_POST['vacant'];
+			$rooms = $_POST['rooms'];
+			$id = $_POST['id'];
+			$sale = $_POST['sale'];
+			try {
+				$stmt = $connect->prepare('UPDATE room_rental_registrations SET fullname = ?,  email = ?, mobile = ?, alternat_mobile = ?, plot_number = ?, rooms = ?, country = ?, state = ?, city = ?, address = ?, landmark = ?, rent = ?, sale=?, deposit = ?, description = ?, accommodation = ?, vacant = ?, user_id = ?  WHERE id = ?');
+				$stmt->execute(array(
+					$fullname,
+					$email,
+					$mobile,
+					$alternat_mobile,
+					$plot_number,
+					$rooms,
+				 	$country,
+					$state,
+					$city,
+					$address,
+					$landmark,
+					$rent,
+					$sale,
+					$deposit,
+					$description,
+					$accommodation,
+					$vacant,
+					$user_id,
+					$id
+				));
+
+				header('Location: update.php?action=reg');
+				exit;
+			}catch(PDOException $e) {
+				echo $e->getMessage();
+			}
+	}
+
+
+	if(isset($_POST['register_apartment'])) {
+			$errMsg = '';
+			// Get data from FROM
+			$fullname = $_POST['fullname'];
+			$email = $_POST['email'];
+			$mobile = $_POST['mobile'];
+			$alternat_mobile = $_POST['alternat_mobile'];
+			$plot_number = $_POST['plot_number'];
+			$country = $_POST['country'];
+			$state = $_POST['state'];
+			$city = $_POST['city'];
+			$address = $_POST['address'];
+			$landmark = $_POST['landmark'];
+			$rent = $_POST['rent'];
+			$deposit = $_POST['deposit'];
+			$description = $_POST['description'];
+			$rooms = $_POST['rooms'];
+			//$open_for_sharing = $_POST['open_for_sharing'];
+			$user_id = $_SESSION['id'];
+			$accommodation = $_POST['accommodation'];
+			$apartment_name = $_POST['apartment_name'];
+			//$image = $_POST['image']?$_POST['image']:NULL;
+			//$other = $_POST['other'];
+			$floor = $_POST['floor'];
+			$ownership = $_POST['own'];
+			$purpose = $_POST['purpose'];
+			$area = $_POST['area'];
+			$vacant = $_POST['vacant'];
+			$ap_number_of_plats = $_POST['ap_number_of_plats'];
+
+			try {
+				$stmt = $connect->prepare('UPDATE room_rental_registrations_apartment SET fullname = ?, email = ?, mobile = ?, alternat_mobile = ?, plot_number = ?, apartment_name = ?, ap_number_of_plats = ?, rooms = ?, country = ?, state = ?, city = ?, address = ?, landmark = ?, rent = ?, deposit = ?, description = ?, accommodation = ?, vacant = ?, user_id = ?, floor = ?, own = ?, area = ?, purpose = ?  WHERE id = ?');
+
+				// foreach ($_POST['ap_number_of_plats'] as $key => $value) {
+					# code...
+					$stmt->execute(array(
+						$fullname,
+						$email,
+						$mobile,
+						$alternat_mobile,
+						$plot_number,
+						$apartment_name,
+						$ap_number_of_plats,
+						$rooms,
+						$country,
+						$state,
+						$city,
+						$address,
+						$landmark,
+						$rent,
+						$deposit,
+						$description,
+						$accommodation,
+						//$other,
+						$vacant,
+						$user_id,
+						$floor,
+						$ownership,
+						$area,
+						$purpose,
+						$id,
+					));
+				// }
+				header('Location: update.php?action=reg');
+				exit;
+			}catch(PDOException $e) {
+				echo $e->getMessage();
+			}
+	}
+
+	if(isset($_GET['action']) && $_GET['action'] == 'reg') {
+		$errMsg = 'Update successfull. Thank you';
+	}
+
+		//print_r($data);
+		// echo "<br><br><br>";
+		// print_r($data2);
+		// echo "<br><br><br>";
+		// print_r($data);
+?>
+<?php include '../include/header.php';?>
+
+<!-- Add Font Awesome CSS if not already included in header -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<!-- Add Nunito font for consistency -->
+<link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+
+<div id="wrapper">
+    <!-- Sidebar -->
+    <div id="sidebar-wrapper">
+        <a href="#" class="sidebar-brand">
+            <i class="fas fa-home"></i> ROME
+        </a>
+        <hr class="sidebar-divider">
+        
+        <div class="sidebar-heading">
+            Core
+        </div>
+        
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="../auth/dashboard.php" class="nav-link">
+                    <i class="fas fa-fw fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+        </ul>
+        
+        <hr class="sidebar-divider">
+        
+        <div class="sidebar-heading">
+            Management
+        </div>
+        
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="list.php" class="nav-link">
+                    <i class="fas fa-fw fa-building"></i>
+                    <span>Room Management</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="register.php" class="nav-link">
+                    <i class="fas fa-fw fa-plus-circle"></i>
+                    <span>Add New Room</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="users.php" class="nav-link">
+                    <i class="fas fa-fw fa-users"></i>
+                    <span>Tenant Management</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-fw fa-calendar-check"></i>
+                    <span>Reservations</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-fw fa-money-bill-wave"></i>
+                    <span>Payments & Bills</span>
+                </a>
+            </li>
+        </ul>
+        
+        <hr class="sidebar-divider">
+        
+        <div class="sidebar-heading">
+            Account
+        </div>
+        
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-fw fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="../auth/logout.php" class="nav-link">
+                    <i class="fas fa-fw fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+    
+    <!-- Content Wrapper -->
+    <div id="content-wrapper">
+        <!-- Topbar -->
+        <div class="topbar">
+            <button id="sidebarToggleBtn" class="btn btn-link">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <div class="d-none d-md-inline-block form-inline ml-auto mr-0 mr-md-3 my-2 my-md-0">
+                <div class="user-info">
+                    <span><?php echo $_SESSION['fullname']; ?> <?php if($_SESSION['role'] == 'admin'){ echo "(Admin)"; } ?></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div id="content">
+            <div class="container-fluid">
+                <!-- Page Heading -->
+                <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                    <h1 class="h3 mb-0 text-gray-800">Update Property Information</h1>
+                </div>
+                
+                <?php if(isset($errMsg)){ ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle mr-2"></i> <?php echo $errMsg; ?>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                <?php } ?>
+                
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Property Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <?php
+                            if (isset($active)) {
+                                if ($active === 'ap') {
+                                    include 'partials/edit/apartment.php';
+                                }
+
+                                if ($active === 'indi') {
+                                    include 'partials/edit/individaul.php';
+                                }
+                            }
+                        ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --primary-color: #4e73df;
+        --secondary-color: #1cc88a;
+        --danger-color: #e74a3b;
+        --warning-color: #f6c23e;
+        --info-color: #36b9cc;
+        --dark-color: #5a5c69;
+        --light-color: #f8f9fc;
+    }
+    
+    body {
+        font-family: 'Nunito', sans-serif;
+        background-color: #f8f9fc;
+    }
+    
+    #wrapper {
+        display: flex;
+    }
+    
+    #sidebar-wrapper {
+        min-height: 100vh;
+        width: 250px;
+        background-color: #4e73df;
+        background-image: linear-gradient(180deg, #4e73df 10%, #224abe 100%);
+        background-size: cover;
+        color: white;
+        position: fixed;
+        transition: all 0.3s;
+        z-index: 999;
+    }
+    
+    #sidebar-wrapper.toggled {
+        margin-left: -250px;
+    }
+    
+    .sidebar-brand {
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 800;
+        padding: 1.5rem 1rem;
+        text-decoration: none;
+        color: white;
+    }
+    
+    .sidebar-divider {
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        margin: 0 1rem;
+    }
+    
+    .nav-item {
+        position: relative;
+    }
+    
+    .nav-link {
+        display: block;
+        padding: 0.75rem 1rem;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+    }
+    
+    .nav-link:hover {
+        color: white;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .nav-link.active {
+        color: white;
+        font-weight: 700;
+    }
+    
+    .nav-link i {
+        margin-right: 0.5rem;
+        opacity: 0.75;
+    }
+    
+    .sidebar-heading {
+        padding: 0 1rem;
+        font-weight: 800;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 1rem;
+    }
+    
+    #content-wrapper {
+        width: 100%;
+        margin-left: 250px;
+        transition: all 0.3s;
+    }
+    
+    #content {
+        padding: 1.5rem;
+    }
+    
+    .topbar {
+        height: 70px;
+        background-color: white;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1.5rem;
+    }
+    
+    .card {
+        margin-bottom: 1.5rem;
+        border: none;
+        border-radius: 0.35rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .card-header {
+        background-color: #f8f9fc;
+        border-bottom: 1px solid #e3e6f0;
+    }
+    
+    .text-primary {
+        color: #4e73df !important;
+    }
+    
+    .font-weight-bold {
+        font-weight: 700 !important;
+    }
+    
+    .text-gray-800 {
+        color: #5a5c69 !important;
+    }
+    
+    /* Form styling */
+    .form-control {
+        height: 45px;
+        border-radius: 4px;
+        border: 1px solid #d1d3e2;
+    }
+    
+    .form-control:focus {
+        border-color: #bac8f3;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    
+    .btn-primary {
+        background-color: #4e73df;
+        border-color: #4e73df;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2e59d9;
+        border-color: #2653d4;
+    }
+    
+    @media (max-width: 768px) {
+        #sidebar-wrapper {
+            margin-left: -250px;
+        }
+        
+        #sidebar-wrapper.toggled {
+            margin-left: 0;
+        }
+        
+        #content-wrapper {
+            margin-left: 0;
+        }
+        
+        #content-wrapper.toggled {
+            margin-left: 250px;
+        }
+    }
+</style>
+
+<?php include '../include/footer.php';?>
+<script type="text/javascript">
+	var rowCount = 1;
+	function addMoreRows(frm) {
+		rowCount ++;
+		var recRow = '<div id="rowCount'+rowCount+'" class="mb-2"><div class="row"><div class="col-md-5"><input name="ap_number_of_plats[]" type="text" class="form-control" placeholder="Plat Number" maxlength="120"/></div><div class="col-md-5"><input name="rooms[]" type="text" class="form-control" maxlength="120" placeholder="2BHK/3BHK/1RK"/></div><div class="col-md-2"><a href="javascript:void(0);" onclick="removeRow('+rowCount+');" class="btn btn-danger btn-sm">Delete</a></div></div></div>';
+		$('#addedRows').append(recRow);
+	}
+	function removeRow(removeNum) {
+		$('#rowCount'+removeNum).remove();
+	}
+	
+	// Toggle sidebar
+    $("#sidebarToggleBtn").click(function(e) {
+        e.preventDefault();
+        $("#sidebar-wrapper").toggleClass("toggled");
+        $("#content-wrapper").toggleClass("toggled");
+    });
+    
+    // Add active class to current nav item
+    $(document).ready(function() {
+        var path = window.location.pathname;
+        var page = path.split("/").pop();
+        
+        $(".nav-link").each(function() {
+            var href = $(this).attr('href');
+            if (href === page || href.indexOf(page) > -1) {
+                $(this).addClass('active');
+            }
+        });
+    });
+</script>
