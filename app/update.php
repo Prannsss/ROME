@@ -1,7 +1,8 @@
 <?php
+	session_start(); // <-- Edit 1: Add session_start() at the very beginning
 	require '../config/config.php';
 	if(empty($_SESSION['username']))
-		header('Location: login.php');
+		header('Location: login.php'); // Assuming login.php is the correct path relative to update.php
 
 		if ( isset($_GET['id'])) {
 			$id = $_REQUEST['id'];
@@ -83,10 +84,13 @@
 					$id
 				));
 
-				header('Location: update.php?action=reg');
+				// Edit 1: Set session message and redirect to list.php
+				$_SESSION['update_success_message'] = 'Update successful. Thank you';
+				header('Location: list.php'); // New redirect
 				exit;
 			}catch(PDOException $e) {
-				echo $e->getMessage();
+				// Consider setting an error message in session or displaying it differently
+				$errMsg = "Database Error: " . $e->getMessage(); // Store error for potential display
 			}
 	}
 
@@ -154,22 +158,25 @@
 						$id,
 					));
 				// }
-				header('Location: update.php?action=reg');
+				// Edit 1: Set session message and redirect to list.php (matching the other block)
+				$_SESSION['update_success_message'] = 'Update successful. Thank you';
+				// header('Location: update.php?action=reg'); // Old redirect
+				header('Location: list.php'); // New redirect
 				exit;
 			}catch(PDOException $e) {
-				echo $e->getMessage();
+				// Consider setting an error message in session or displaying it differently
+				$errMsg = "Database Error: " . $e->getMessage(); // Store error for potential display
+				// echo $e->getMessage(); // Avoid echoing directly if handling errors differently
 			}
 	}
 
-	if(isset($_GET['action']) && $_GET['action'] == 'reg') {
-		$errMsg = 'Update successfull. Thank you';
+	// Edit 3: Check for the session message AFTER potential POST processing (can be removed if not displaying errors on this page)
+	$updateSuccessMessage = null;
+	if (isset($_SESSION['update_success_message'])) {
+		$updateSuccessMessage = $_SESSION['update_success_message'];
+		unset($_SESSION['update_success_message']); // Clear the message
 	}
-
-		//print_r($data);
-		// echo "<br><br><br>";
-		// print_r($data2);
-		// echo "<br><br><br>";
-		// print_r($data);
+    
 ?>
 <?php include '../include/header.php';?>
 
@@ -283,15 +290,16 @@
                     <h1 class="h3 mb-0 text-gray-800">Update Property Information</h1>
                 </div>
                 
-                <?php if(isset($errMsg)){ ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle mr-2"></i> <?php echo $errMsg; ?>
+                <?php // Display general errors (like DB errors from POST), but not the success message here ?>
+                <?php if(isset($errMsg) && !$updateSuccessMessage){ ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-times-circle mr-2"></i> <?php echo $errMsg; ?>
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
                 <?php } ?>
-                
+
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
                         <h6 class="m-0 font-weight-bold text-primary">Property Details</h6>
@@ -312,8 +320,9 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
+        <!-- ... end Main Content ... -->
+    </div> <!-- End Content Wrapper -->
+</div> <!-- End Wrapper -->
 
 <style>
     :root {
@@ -491,6 +500,10 @@
 </style>
 
 <?php include '../include/footer.php';?>
+
+<!-- Edit 4: Remove SweetAlert library include and trigger script -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> -->
+
 <script type="text/javascript">
 	var rowCount = 1;
 	function addMoreRows(frm) {
@@ -521,4 +534,20 @@
             }
         });
     });
+
+    // Edit 5: Remove SweetAlert trigger
+    /*
+    <?php if ($updateSuccessMessage): ?>
+    Swal.fire({
+        title: 'Success!',
+        text: '<?php echo addslashes($updateSuccessMessage); ?>', // Use the message from session
+        icon: 'success',
+        confirmButtonText: 'OK',
+        customClass: { // Optional: Add custom classes if needed for styling conflicts
+            popup: 'rome-swal-popup',
+            confirmButton: 'rome-swal-confirm'
+        }
+    });
+    <?php endif; ?>
+    */
 </script>

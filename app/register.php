@@ -1,5 +1,9 @@
 <?php
 	require '../config/config.php';
+	// Start session if not already started
+	if (session_status() == PHP_SESSION_NONE) {
+		session_start();
+	}
 	if(empty($_SESSION['username']))
 		header('Location: ../auth/login.php');
 
@@ -23,61 +27,130 @@
 			$accommodation = $_POST['accommodation'];
 			$rooms = $_POST['rooms'];
 			$vacant = $_POST['vacant'];
-			$sale = $_POST['sale'];
+			$sale = $_POST['sale']; // Assuming 'sale' is captured correctly
 
-			//upload an images
-			$target_file = "";
-			if (isset($_FILES["image"]["name"])) {
-				$target_file = "uploads/".basename($_FILES["image"]["name"]);
-				$uploadOk = 1;
-				$imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-				// Check if image file is a actual image or fake image
-			    $check = getimagesize($_FILES["image"]["tmp_name"]);			
-			    if($check !== false) {
-			    	move_uploaded_file($_FILES["image"]["tmp_name"], "uploads/" . $_FILES["image"]["name"]);
-			        $uploadOk = 1;
-			    } else {
-			        echo "File is not an image.";
-			        $uploadOk = 0;
-			    }
-			}
-			//end of image upload
+			// --- Edit 1: Handle multiple image uploads ---
+			$uploadedImagePaths = []; // Array to store paths of successfully uploaded images
+			$target_dir = "uploads/";
+			$max_files = 12; // Maximum number of files allowed
+			$allowed_types = ['jpg', 'jpeg', 'png', 'gif']; // Allowed image types
 
-			try {
-					$stmt = $connect->prepare('INSERT INTO room_rental_registrations (fullname, email, mobile, alternat_mobile, plot_number, rooms, country, state, city, address, landmark, rent, sale, deposit, description, image, accommodation, vacant, user_id) VALUES (:fullname, :email, :mobile, :alternat_mobile, :plot_number, :rooms, :country, :state, :city, :address, :landmark, :rent, :sale, :deposit, :description, :image, :accommodation, :vacant, :user_id)');
-					$stmt->execute(array(
-						':fullname' => $fullname,
-						':email' => $email,
-						':mobile' => $mobile,
-						':alternat_mobile' => $alternat_mobile,
-						':plot_number' => $plot_number,
-						':rooms' => $rooms,
-						':country' => $country,
-						':state' => $state,
-						':city' => $city,
-						':address' => $address,
-						':landmark' => $landmark,
-						':rent' => $rent,
-						':sale' => $sale,
-						':deposit' => $deposit,
-						':description' => $description,
-						':accommodation' => $accommodation,
-						':image' => $target_file,
-						':vacant' => $vacant,
-						':user_id' => $user_id
-						));				
+			if (isset($_FILES['images']['name']) && is_array($_FILES['images']['name'])) {
+				$file_count = count($_FILES['images']['name']);
 
-				header('Location: register.php?action=reg');
-				exit;
+				// Limit the number of files
+				if ($file_count > $max_files) {
+					$errMsg = "You can upload a maximum of {$max_files} images.";
+					// Optional: Redirect back or handle error appropriately
+				} else {
+					for ($i = 0; $i < $file_count; $i++) {
+						// Check if a file was actually uploaded in this slot
+						if ($_FILES['images']['error'][$i] === UPLOAD_ERR_OK) {
+							$original_filename = basename($_FILES["images"]["name"][$i]);
+							// Sanitize filename (optional but recommended)
+							$safe_filename = preg_replace("/[^a-zA-Z0-9._-]/", "_", $original_filename);
+							// Create a unique filename to prevent overwrites
+							$unique_filename = uniqid() . '_' . $safe_filename;
+							$target_file = $target_dir . $unique_filename;
+							$uploadOk = 1;
+							$imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+
+							// Check if image file is a actual image or fake image
+							$check = getimagesize($_FILES["images"]["tmp_name"][$i]);
+							if ($check === false) {
+								$errMsg .= "File '{$original_filename}' is not a valid image. ";
+								$uploadOk = 0;
+							}
+
+							// Check file size (e.g., 5MB limit)
+							if ($_FILES["images"]["size"][$i] > 5000000) {
+								$errMsg .= "File '{$original_filename}' is too large. ";
+								$uploadOk = 0;
+							}
+
+							// Allow certain file formats
+							if (!in_array($imageFileType, $allowed_types)) {
+								$errMsg .= "Sorry, only JPG, JPEG, PNG & GIF files are allowed for '{$original_filename}'. ";
+								$uploadOk = 0;
+							}
+
+							// Check if $uploadOk is set to 0 by an error
+							if ($uploadOk == 0) {
+								$errMsg .= "File '{$original_filename}' was not uploaded. ";
+							// if everything is ok, try to upload file
+							} else {
+								if (move_uploaded_file($_FILES["images"]["tmp_name"][$i], $target_file)) {
+									// Store the relative path for the database
+									$uploadedImagePaths[] = $target_file;
+								} else {
+									$errMsg .= "Sorry, there was an error uploading '{$original_filename}'. ";
+								}
+							}
+						} elseif ($_FILES['images']['error'][$i] !== UPLOAD_ERR_NO_FILE) {
+							// Handle other upload errors if necessary
+							$errMsg .= "Error uploading file #" . ($i+1) . ": Error code " . $_FILES['images']['error'][$i] . ". ";
+						}
+					}
+				}
 			}
-			catch(PDOException $e) {
-				echo $e->getMessage();
-			}
+
+			// --- End Edit 1 ---
+
+			// Proceed only if there were no critical upload errors (adjust condition as needed)
+			if (empty($errMsg) || !empty($uploadedImagePaths)) { // Allow saving even if some images failed, but at least one succeeded or none were attempted
+				try {
+						// --- Edit 2: Store image paths as JSON ---
+						$images_json = json_encode($uploadedImagePaths);
+						// Make sure the 'image' column in your DB can store enough text (e.g., TEXT type)
+						// --- End Edit 2 ---
+
+						$stmt = $connect->prepare('INSERT INTO room_rental_registrations (fullname, email, mobile, alternat_mobile, plot_number, rooms, country, state, city, address, landmark, rent, sale, deposit, description, image, accommodation, vacant, user_id) VALUES (:fullname, :email, :mobile, :alternat_mobile, :plot_number, :rooms, :country, :state, :city, :address, :landmark, :rent, :sale, :deposit, :description, :image, :accommodation, :vacant, :user_id)');
+						$stmt->execute(array(
+							':fullname' => $fullname,
+							':email' => $email,
+							':mobile' => $mobile,
+							':alternat_mobile' => $alternat_mobile,
+							':plot_number' => $plot_number,
+							':rooms' => $rooms,
+							':country' => $country,
+							':state' => $state,
+							':city' => $city,
+							':address' => $address,
+							':landmark' => $landmark,
+							':rent' => $rent,
+							':sale' => $sale,
+							':deposit' => $deposit,
+							':description' => $description,
+							// --- Edit 3: Bind the JSON string ---
+							':image' => $images_json, // Store the JSON array of paths
+							// --- End Edit 3 ---
+							':accommodation' => $accommodation,
+							':vacant' => $vacant,
+							':user_id' => $user_id
+							));
+
+					// --- Edit 4: Add success message to session and redirect to list.php ---
+					$_SESSION['registration_success_message'] = 'Room registered successfully!';
+					if (!empty($errMsg)) { // Append non-critical image errors if any
+						$_SESSION['registration_success_message'] .= ' Some image upload issues occurred: ' . $errMsg;
+					}
+					header('Location: list.php'); // Redirect to the list page
+					// --- End Edit 4 ---
+					exit;
+				}
+				catch(PDOException $e) {
+					// Keep the specific DB error message for debugging/logging
+					$errMsg = "Database Error: " . $e->getMessage();
+					// You might want to log the detailed error and show a generic message to the user
+					// $errMsg = "An error occurred during registration. Please try again.";
+				}
+			} // End if empty($errMsg)
 	}
 
-	if(isset($_GET['action']) && $_GET['action'] == 'reg') {
-		$errMsg = 'Registration successful. Thank you';
-	}
+	// Remove the old success message handling via GET parameter
+	// if(isset($_GET['action']) && $_GET['action'] == 'reg') {
+	//	 $errMsg = 'Registration successful. Thank you';
+	// }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -446,11 +519,14 @@
                                             </div>
                                             <div class="col-md-8">
                                                 <div class="form-group">
-                                                    <label for="image"><i class="fas fa-image mr-1"></i> Property Image</label>
+                                                    <label for="images"><i class="fas fa-images mr-1"></i> Property Images (up to 12)</label>
                                                     <div class="custom-file">
-                                                        <input type="file" class="custom-file-input" id="image" name="image">
-                                                        <label class="custom-file-label" for="image">Choose file</label>
+                                                        <!-- --- Edit 5: Update file input for multiple files --- -->
+                                                        <input type="file" class="custom-file-input" id="images" name="images[]" multiple accept="image/*">
+                                                        <label class="custom-file-label" for="images">Choose files...</label>
+                                                        <!-- --- End Edit 5 --- -->
                                                     </div>
+                                                    <small class="form-text text-muted">Select 8-12 photos (JPG, PNG, GIF). Max 5MB each.</small>
                                                 </div>
                                             </div>
                                         </div>

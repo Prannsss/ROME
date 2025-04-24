@@ -16,7 +16,10 @@
 		$connect->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	}
 	catch(PDOException $e) {
-		echo $e->getMessage();
+		// It's generally better to log errors in included files rather than echoing.
+        // Echoing here could also break JSON output in API scripts.
+        error_log("Database Connection Error in config.php: " . $e->getMessage());
+        // Optionally, you could die() here if the DB connection is absolutely critical
+        // die("Database connection failed. Please check configuration.");
 	}
-
 ?>

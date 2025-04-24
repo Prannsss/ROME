@@ -153,38 +153,58 @@ function initProfileEditing() {
 
 // Initialize profile picture upload functionality
 function initProfilePictureUpload() {
-  const changeProfilePicture = document.getElementById('changeProfilePicture');
+  // Look for both possible elements - the one in the HTML and the one your JS is looking for
   const profileImageUpload = document.getElementById('profileImageUpload');
   
-  if (changeProfilePicture && profileImageUpload) {
-    changeProfilePicture.addEventListener('click', function() {
-      profileImageUpload.click();
-    });
-    
+  if (profileImageUpload) {
+    // Add a direct event listener to the file input
     profileImageUpload.addEventListener('change', function() {
       if (this.files && this.files[0]) {
         const formData = new FormData();
-        formData.append('profile_image', this.files[0]);
+        formData.append('profile_picture', this.files[0]);
         
-        fetch('update_profile_image.php', {
+        // Add a loading indicator or message
+        const profilePicDisplay = document.getElementById('profilePictureDisplay');
+        if (profilePicDisplay) {
+          profilePicDisplay.style.opacity = '0.5'; // Dim the image during upload
+        }
+        
+        // Log to console for debugging
+        console.log('Uploading profile picture...');
+        
+        fetch('/ROME/api/upload_profile_picture.php', {
           method: 'POST',
           body: formData
         })
-        .then(response => response.json())
+        .then(response => {
+          console.log('Response status:', response.status);
+          return response.json();
+        })
         .then(data => {
+          console.log('Upload response:', data);
           if (data.success) {
             alert('Profile picture updated successfully!');
             location.reload();
           } else {
             alert('Error: ' + data.message);
+            // Reset opacity if upload fails
+            if (profilePicDisplay) {
+              profilePicDisplay.style.opacity = '1';
+            }
           }
         })
         .catch(error => {
           console.error('Error:', error);
           alert('An error occurred while updating your profile picture.');
+          // Reset opacity if upload fails
+          if (profilePicDisplay) {
+            profilePicDisplay.style.opacity = '1';
+          }
         });
       }
     });
+  } else {
+    console.error('Profile image upload element not found in the DOM');
   }
 }
 

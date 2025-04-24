@@ -1,0 +1,96 @@
+/**
+ * ROME Application - Common Tab Styles
+ */
+
+/* Card styles */
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Alert styles */
+.alert {
+    border-radius: 4px;
+    border-left-width: 4px;
+}
+
+.alert-info {
+    border-left-color: #36b9cc;
+}
+
+.alert-success {
+    border-left-color: #1cc88a;
+}
+
+.alert-warning {
+    border-left-color: #f6c23e;
+}
+
+.alert-danger {
+    border-left-color: #e74a3b;
+}
+
+/* Button styles */
+.btn {
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Form control styles */
+.form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    border-color: #bac8f3;
+}
+
+/* Badge styles */
+.badge {
+    font-weight: 600;
+    padding: 0.35em 0.65em;
+}
+
+/* Spinner styles */
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+}
+
+/* Modal styles */
+.modal-content {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+}
+
+.modal-footer {
+    border-bottom-left-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .d-sm-flex {
+        display: block !important;
+    }
+    
+    .d-sm-inline-block {
+        margin-top: 1rem;
+        width: 100%;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}

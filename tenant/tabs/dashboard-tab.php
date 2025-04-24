@@ -9,21 +9,24 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'tenant') {
 }
 
 // Include database connection and functions
-require_once "../../config/config.php"; // This gives us $connect
-require_once "../../includes/functions.php"; // This uses $conn
+require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/includes/db_connection.php');
+require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/includes/helpers.php');
 
 // Get tenant data
 $tenant_id = $_SESSION['user_id'];
 
 // Get tenant profile
 try {
-    // Use $connect from config.php
-    $stmt = $connect->prepare("SELECT * FROM users WHERE id = :id AND role = 'tenant'");
+    // Use standardized connection
+    $db = getDbConnection();
+    
+    // Use $db instead of $connect for all database operations
+    $stmt = $db->prepare("SELECT * FROM users WHERE id = :id AND role = 'tenant'");
     $stmt->execute([':id' => $tenant_id]);
     $tenant = $stmt->fetch(PDO::FETCH_ASSOC);
     
     // Get current rental
-    $stmt = $connect->prepare("
+    $stmt = $db->prepare("
         SELECT cr.*, rrr.fullname as room_name, rrr.image as room_image, rrr.address as location
         FROM current_rentals cr
         JOIN room_rental_registrations rrr ON cr.room_id = rrr.id
@@ -525,6 +528,9 @@ $conn = null;
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
 
+    <!-- Include SweetAlert2 Library Here -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <!-- Custom scripts -->
     <script>
         // Toggle sidebar
@@ -532,6 +538,15 @@ $conn = null;
             document.getElementById('sidebar-wrapper').classList.toggle('toggled');
             document.getElementById('content-wrapper').classList.toggle('toggled');
         });
+    </script>
+
+    <!-- Include Cropper.js -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+
+    <!-- Custom scripts -->
+    <script>
+        // ... existing sidebar toggle script ...
     </script>
 </body>
 </html>

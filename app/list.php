@@ -1,4 +1,8 @@
 <?php
+	// Ensure session is started at the very top
+	if (session_status() == PHP_SESSION_NONE) {
+		session_start();
+	}
 	require '../config/config.php';
 	if(empty($_SESSION['username']))
 		header('Location: ../auth/login.php');
@@ -20,6 +24,22 @@
 	} catch(PDOException $e) {
 		$errMsg = $e->getMessage();
 	}
+
+	// Check for the success message from the session (update or registration)
+	$updateSuccessMessage = null;
+	if (isset($_SESSION['update_success_message'])) {
+		$updateSuccessMessage = $_SESSION['update_success_message'];
+		unset($_SESSION['update_success_message']); // Clear the message
+	}
+
+	// --- Edit 1: Check for registration success message ---
+	$registrationSuccessMessage = null;
+	if (isset($_SESSION['registration_success_message'])) {
+		$registrationSuccessMessage = $_SESSION['registration_success_message'];
+		unset($_SESSION['registration_success_message']); // Clear the message
+	}
+	// --- End Edit 1 ---
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -342,6 +362,7 @@
                         </a>
                     </div>
 
+                    <?php // Display general errors (like DB errors from fetch) ?>
                     <?php
                         if(isset($errMsg)){
                             echo '<div class="alert alert-danger">'.$errMsg.'</div>';
@@ -358,7 +379,12 @@
                                         Room #<?php echo $value['id']; ?>
                                     </h6>
                                     <div class="d-flex align-items-center">
-                                        <span class="status-badge status-occupied mr-2">Occupied</span>
+                                        <?php // Edit: Replace hardcoded 'Occupied' badge with dynamic status ?>
+                                        <?php if($value['vacant'] == 1): ?>
+                                            <span class="status-badge status-vacant mr-2">Available</span>
+                                        <?php else: ?>
+                                            <span class="status-badge status-occupied mr-2">Occupied</span>
+                                        <?php endif; ?>
                                         <a href="update.php?id=<?php echo $value['id']; ?>&act=<?php echo !empty($value['own']) ? 'ap' : 'indi'; ?>" class="btn btn-sm btn-warning">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>
@@ -409,6 +435,7 @@
                                             <?php endif; ?>
 
                                             <div class="mt-3">
+                                                <?php // This part already correctly shows the status with a button ?>
                                                 <?php if($value['vacant'] == 1): ?>
                                                 <button class="btn btn-sm btn-success">
                                                     <i class="fas fa-check-circle"></i> Available for Rent
@@ -428,13 +455,15 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+            <!-- ... end Main Content ... -->
+        </div> <!-- End Content Wrapper -->
+    </div> <!-- End Wrapper -->
 
-    <!-- Bootstrap core JavaScript -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Ensure jQuery is included first (often in footer.php) -->
+    <?php include '../include/footer.php';?> <!-- Assuming footer includes jQuery/Bootstrap JS -->
+
+    <!-- Edit 1: Include SweetAlert2 library AFTER jQuery -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         // Toggle sidebar
@@ -446,6 +475,8 @@
 
         // Add active class to current nav item
         $(document).ready(function() {
+            console.log('Document ready. Checking for success message...'); // Debugging line 1
+
             var path = window.location.pathname;
             var page = path.split("/").pop();
 
@@ -455,11 +486,19 @@
                     $(this).addClass('active');
                 }
             });
-        });
 
-        // Initialize tooltips
-        $(function () {
-            $('[data-toggle="tooltip"]').tooltip();
+            // Edit 2: Add console logs and trigger SweetAlert
+            <?php if (isset($updateSuccessMessage) && $updateSuccessMessage): ?>
+                console.log('Success message found:', '<?php echo addslashes($updateSuccessMessage); ?>'); // Debugging line 2
+                Swal.fire({
+                    title: 'Success!',
+                    text: '<?php echo addslashes($updateSuccessMessage); ?>', // Use the message from session
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                });
+            <?php else: ?>
+                console.log('No success message found in PHP variable.'); // Debugging line 3
+            <?php endif; ?>
         });
     </script>
 </body>

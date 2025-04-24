@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 21, 2025 at 08:09 AM
+-- Generation Time: Apr 24, 2025 at 06:14 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -120,6 +120,21 @@ CREATE TABLE `lease_renewals` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `maintenance_comments`
+--
+
+CREATE TABLE `maintenance_comments` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `request_id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(10) UNSIGNED NOT NULL,
+  `user_type` enum('tenant','staff','admin') NOT NULL,
+  `comment` text NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `maintenance_requests`
 --
 
@@ -129,6 +144,8 @@ CREATE TABLE `maintenance_requests` (
   `room_id` int(10) UNSIGNED NOT NULL,
   `issue_type` varchar(100) NOT NULL,
   `description` text NOT NULL,
+  `priority` enum('low','medium','high','emergency') NOT NULL DEFAULT 'medium',
+  `photo` varchar(255) DEFAULT NULL,
   `status` enum('pending','in_progress','completed','cancelled') NOT NULL DEFAULT 'pending',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp()
@@ -138,9 +155,9 @@ CREATE TABLE `maintenance_requests` (
 -- Dumping data for table `maintenance_requests`
 --
 
-INSERT INTO `maintenance_requests` (`id`, `user_id`, `room_id`, `issue_type`, `description`, `status`, `created_at`, `updated_at`) VALUES
-(1, 2, 13, 'Plumbing', 'Leaking faucet in the bathroom', 'pending', '2025-04-14 08:14:23', '2025-04-14 08:14:23'),
-(2, 2, 13, 'Electrical', 'Light fixture not working in bedroom', 'in_progress', '2025-04-14 08:14:23', '2025-04-14 08:14:23');
+INSERT INTO `maintenance_requests` (`id`, `user_id`, `room_id`, `issue_type`, `description`, `priority`, `photo`, `status`, `created_at`, `updated_at`) VALUES
+(1, 2, 13, 'Plumbing', 'Leaking faucet in the bathroom', 'medium', NULL, 'pending', '2025-04-14 08:14:23', '2025-04-14 08:14:23'),
+(2, 2, 13, 'Electrical', 'Light fixture not working in bedroom', 'medium', NULL, 'in_progress', '2025-04-14 08:14:23', '2025-04-14 08:14:23');
 
 -- --------------------------------------------------------
 
@@ -215,9 +232,10 @@ CREATE TABLE `room_rental_registrations` (
 --
 
 INSERT INTO `room_rental_registrations` (`id`, `fullname`, `mobile`, `alternat_mobile`, `email`, `country`, `state`, `city`, `landmark`, `rent`, `sale`, `deposit`, `plot_number`, `rooms`, `address`, `accommodation`, `description`, `image`, `open_for_sharing`, `other`, `vacant`, `created_at`, `updated_at`, `user_id`) VALUES
-(13, 'Ashish Gaikwazini', '2345676568', '98888787', 'admin@admin.com', 'india', 'Maharashtra', 'Jalgaon', 'near ramanand police station', '1100', '20000', '5000', '77 nh', '2bhk', 'kolhe nagar, jalgaon', '4', 'nice house', 'uploads/Jalgao1.jpg', NULL, 'zx', 1, '2022-05-05 12:21:43', '2022-05-05 12:21:43', NULL),
-(16, 'Allain Ralph Legaspi', '5555555555', '666666666', 'allain@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Near Brngy. Hall', '3500', '4000000000', '1500', '77', '20', 'Guadalupe, Cebu City', 'Wi-Fi, CR, Balcony', 'hahahhaha', 'uploads/beachapt.jpg', NULL, NULL, 1, '2025-04-21 04:20:47', '2025-04-21 04:20:47', NULL),
-(17, 'Sir Rocky', '9999999999', '666666666', 'rocky@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Near IT', '5000', '500000000', '3000', '11', '20', 'Cebu Cuty', 'Wi-Fi, CR, Balcony', 'hhhhh', 'uploads/modernapt.jpg', NULL, NULL, 1, '2025-04-21 05:55:07', '2025-04-21 05:55:07', NULL);
+(13, 'Ashish Gaikwazini', '2345676568', '2345676568', 'admin@admin.com', 'india', 'Maharashtra', 'Jalgaon', 'near ramanand police station', '1100', '20000', '5000', '77 nh', '2bhk', 'kolhe nagar, jalgaon', '4', 'nice house', 'uploads/Jalgao1.jpg', NULL, 'zx', 1, '2022-05-05 12:21:43', '2022-05-05 12:21:43', NULL),
+(16, 'Allain Ralph Legaspi', '5555555555', '666666666', 'allain@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Near Brngy. Hall', '3500', '4000000000', '1500', '77', '20', 'Guadalupe, Cebu City', '5', 'hahahhaha', 'uploads/beachapt.jpg', NULL, NULL, 1, '2025-04-21 04:20:47', '2025-04-21 04:20:47', NULL),
+(17, 'Sir Rocky', '9999999999', '666666666', 'rocky@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Near IT', '5000', '500000000', '3000', '11', '20', 'Cebu Cuty', '5', 'hhhhh', 'uploads/modernapt.jpg', NULL, NULL, 1, '2025-04-21 05:55:07', '2025-04-21 05:55:07', NULL),
+(18, 'Hanz Magbal', '0969696969', '09999999999', 'hanz@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Near Shell', '2500', '', '1500', '20', '20', 'Lahug, Cebu City ', 'Wi-Fi, CR, Balcony', 'hahahha', '[\"uploads\\/6808ab38664f2_luxuryapt.jpg\",\"uploads\\/6808ab3866c07_homeapt.jpg\",\"uploads\\/6808ab3866de4_header-bg.jpg.jpg\",\"uploads\\/6808ab3866f81_studioapt.jpg\"]', NULL, NULL, 1, '2025-04-23 08:56:24', '2025-04-23 08:56:24', NULL);
 
 -- --------------------------------------------------------
 
@@ -262,6 +280,8 @@ CREATE TABLE `users` (
   `mobile` varchar(191) NOT NULL,
   `username` varchar(191) NOT NULL,
   `email` varchar(191) NOT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `image` varchar(255) DEFAULT NULL,
   `password` varchar(191) NOT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp(),
@@ -273,9 +293,9 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `fullname`, `mobile`, `username`, `email`, `password`, `created_at`, `updated_at`, `role`, `status`) VALUES
-(11, 'Test Tenant', '9876543211', 'tenant', 'tenant@rome.com', '0192023a7bbd73250516f069df18b500', '2025-04-14 08:14:23', '2025-04-14 08:14:23', 'tenant', 1),
-(10, 'Administrator', '9876543210', 'admin', 'admin@rome.com', '0192023a7bbd73250516f069df18b500', '2025-04-14 07:36:27', '2025-04-14 07:36:27', 'admin', 1);
+INSERT INTO `users` (`id`, `fullname`, `mobile`, `username`, `email`, `address`, `image`, `password`, `created_at`, `updated_at`, `role`, `status`) VALUES
+(11, 'Test Tenant', '9876543211', 'tenant', 'tenant@rome.com', 'Cebu City', '/ROME/uploads/profile_pictures/user_11_1745399223.png', '0192023a7bbd73250516f069df18b500', '2025-04-14 08:14:23', '2025-04-14 08:14:23', 'tenant', 1),
+(10, 'Administrator', '9876543210', 'admin', 'admin@rome.com', NULL, NULL, '0192023a7bbd73250516f069df18b500', '2025-04-14 07:36:27', '2025-04-14 07:36:27', 'admin', 1);
 
 -- --------------------------------------------------------
 
@@ -332,6 +352,13 @@ ALTER TABLE `featured_properties`
 --
 ALTER TABLE `lease_renewals`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `maintenance_comments`
+--
+ALTER TABLE `maintenance_comments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `request_id` (`request_id`);
 
 --
 -- Indexes for table `maintenance_requests`
@@ -417,6 +444,12 @@ ALTER TABLE `lease_renewals`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `maintenance_comments`
+--
+ALTER TABLE `maintenance_comments`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `maintenance_requests`
 --
 ALTER TABLE `maintenance_requests`
@@ -438,7 +471,7 @@ ALTER TABLE `reservations`
 -- AUTO_INCREMENT for table `room_rental_registrations`
 --
 ALTER TABLE `room_rental_registrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `saved_rooms`

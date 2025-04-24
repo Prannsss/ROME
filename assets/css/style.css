@@ -2939,3 +2939,9 @@ section h2.section-heading {
 .navbar-inverse .navbar-brand:focus {
   color: var(--primary-light);
 }
+
+.img-container > img {
+  display: block;
+  /* Ensure the image is not larger than the container */
+  max-width: 100%;
+}
