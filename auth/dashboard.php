@@ -348,7 +348,7 @@ try {
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="../app/reservations.php" class="nav-link">
                         <i class="fas fa-fw fa-calendar-check"></i>
                         <span>Reservations</span>
                     </a>

@@ -1,0 +1,47 @@
+.tab-content {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 0.35rem;
+    margin-bottom: 20px;
+}
+
+.property-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.property-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.property-thumbnail-container {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+}
+
+.property-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.property-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.badge-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+    color: white;
+}

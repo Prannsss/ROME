@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const propertyDetailsModal = document.getElementById('propertyDetailsModal');
     const propertyDetailsContent = document.getElementById('propertyDetailsContent');
     const viewDetailsButtons = document.querySelectorAll('.view-details');
-    
+
     // Preload images to check if they exist
     function checkImageExists(url) {
         return new Promise((resolve) => {
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
             img.src = url;
         });
     }
-    
+
     viewDetailsButtons.forEach(button => {
         button.addEventListener('click', function() {
             const propertyId = this.getAttribute('data-id');
@@ -124,9 +124,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="actions">
                     <button class="btn btn-primary btn-block mb-2" id="scheduleViewingBtn">Schedule Viewing</button>
-                    <button class="btn btn-outline-secondary btn-block add-to-favorites" data-id="${propertyId}">
-                        <i class="far fa-heart"></i> Add to Favorites
-                    </button>
+                    <div class="ms-auto">
+                    <button class="btn btn-primary me-2 reserve-button">Reserve</button>
+                    <button class="btn btn-outline-secondary add-to-favorites"><i class="fas fa-heart" data-id="${propertyId}"></i></button>
+                    </div>
                 </div>
             `;
 
@@ -141,36 +142,36 @@ document.addEventListener('DOMContentLoaded', function() {
             initFavoriteButtons();
         });
     });
-    
+
     // Initialize favorite buttons
     function initFavoriteButtons() {
         const favoriteButtons = document.querySelectorAll('.add-to-favorites');
-        
+
         favoriteButtons.forEach(button => {
             button.addEventListener('click', function() {
                 const propertyId = this.getAttribute('data-id');
-                
+
                 // Toggle heart icon
                 const heartIcon = this.querySelector('i');
                 if (heartIcon.classList.contains('far')) {
                     heartIcon.classList.replace('far', 'fas');
                     this.innerHTML = '<i class="fas fa-heart"></i> Added to Favorites';
                     this.classList.replace('btn-outline-primary', 'btn-primary');
-                    
+
                     // Add to favorites via AJAX
                     addToFavorites(propertyId);
                 } else {
                     heartIcon.classList.replace('fas', 'far');
                     this.innerHTML = '<i class="far fa-heart"></i> Add to Favorites';
                     this.classList.replace('btn-primary', 'btn-outline-primary');
-                    
+
                     // Remove from favorites via AJAX
                     removeFromFavorites(propertyId);
                 }
             });
         });
     }
-    
+
     // Add to favorites function
     function addToFavorites(propertyId) {
         fetch('/ROME/api/properties.php?action=addFavorite&property_id=' + propertyId, {
@@ -190,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Error adding to favorites', 'error');
         });
     }
-    
+
     // Remove from favorites function
     function removeFromFavorites(propertyId) {
         fetch('/ROME/api/properties.php?action=removeFavorite&property_id=' + propertyId, {
@@ -210,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Error removing from favorites', 'error');
         });
     }
-    
+
     // Sorting functionality
     const sortLinks = document.querySelectorAll('.sort-properties');
     sortLinks.forEach(link => {
@@ -220,17 +221,17 @@ document.addEventListener('DOMContentLoaded', function() {
             sortProperties(sortType);
         });
     });
-    
+
     function sortProperties(sortType) {
         const container = document.getElementById('propertyContainer');
         const items = Array.from(container.querySelectorAll('.property-item'));
-        
+
         items.sort((a, b) => {
             const priceA = parseInt(a.getAttribute('data-price'));
             const priceB = parseInt(b.getAttribute('data-price'));
             const idA = parseInt(a.getAttribute('data-id'));
             const idB = parseInt(b.getAttribute('data-id'));
-            
+
             if (sortType === 'price-low') {
                 return priceA - priceB;
             } else if (sortType === 'price-high') {
@@ -240,12 +241,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return 0;
         });
-        
+
         // Clear container and append sorted items
         container.innerHTML = '';
         items.forEach(item => container.appendChild(item));
     }
-    
+
     // Filter functionality
     const filterLinks = document.querySelectorAll('.filter-properties');
     filterLinks.forEach(link => {
@@ -255,10 +256,10 @@ document.addEventListener('DOMContentLoaded', function() {
             filterProperties(filterType);
         });
     });
-    
+
     function filterProperties(filterType) {
         const items = document.querySelectorAll('.property-item');
-        
+
         items.forEach(item => {
             if (filterType === 'all') {
                 item.style.display = '';
@@ -268,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Toast notification function
     function showToast(message, type = 'info') {
         // Check if toastr is available

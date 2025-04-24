@@ -388,6 +388,9 @@
                                         <a href="update.php?id=<?php echo $value['id']; ?>&act=<?php echo !empty($value['own']) ? 'ap' : 'indi'; ?>" class="btn btn-sm btn-warning">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>
+                                        <a href="#" class="btn btn-sm btn-danger ml-2 delete-btn" data-id="<?php echo $value['id']; ?>">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
                                     </div>
                                 </div>
 
@@ -503,3 +506,4 @@
     </script>
 </body>
 </html>
+<script>$(document).ready(function() { $('.delete-btn').click(function(e) { e.preventDefault(); var roomId = $(this).data('id'); Swal.fire({ title: 'Are you sure?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!' }).then((result) => { if (result.isConfirmed) { $.ajax({ url: 'delete.php', type: 'POST', data: { id: roomId }, success: function(response) { Swal.fire( 'Deleted!', 'Your file has been deleted.', 'success' ).then(() => { location.reload(); }); }, error: function() { Swal.fire( 'Error!', 'There was an error deleting the room.', 'error' ); } }); } }); }); });</script>

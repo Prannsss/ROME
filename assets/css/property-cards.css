@@ -38,7 +38,7 @@
 }
 
 .property-badge {
-    position: absolute;
+    position: absolute !important;
     top: 6px;
     left: 6px;
     padding: 2px 6px;
@@ -48,6 +48,7 @@
     color: white;
     z-index: 2;
     text-transform: uppercase;
+    max-width: 70px;
 }
 
 .badge-success {
@@ -66,17 +67,20 @@
 }
 
 .property-price {
-    font-size: 0.9rem; /* Smaller price font */
+    font-size: 1.1rem; /* Larger price font */
     font-weight: 600;
     color: #1c1e21;
     margin-bottom: 0; /* Remove bottom margin */
     line-height: 1.2;
+    margin-top: 8px;
+    text-align: left; /* Align price to left */
+    padding-left: 8px; /* Add some left padding */
 }
 
 /* Actions Area */
 .property-actions {
     padding: 8px; /* Reduced padding */
-    margin-top: auto; /* Push actions to the bottom */
+    margin-top: 4px; /* Reduce space between price and button */
     background-color: #fff;
     border-top: 1px solid #eee; /* Add a subtle separator */
 }
@@ -110,6 +114,33 @@
 }
 
 /* Ensure carousel images fit well */
+#modalCarouselContainer {
+    padding: 20px; /* Add padding around the image */
+    padding-right: 30px; /* Ensure spacing on the right side of the image */
+}
+
+.property-actions {
+    padding: 8px; /* Reduced padding */
+    margin-top: 4px; /* Reduce space between price and button */
+    background-color: #fff;
+    border-top: 1px solid #eee; /* Add a subtle separator */
+    display: flex;
+    justify-content: space-between;
+}
+
+.property-actions .reserve-button {
+    background-color: #ff0000;
+    color: #fff;
+    border: none;
+    padding: 8px 32px; /* Increased padding for longer button */
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.property-actions .reserve-button:hover {
+    background-color: #ff0000;
+}
 #modalCarouselContainer .carousel-inner {
     border-radius: 6px;
     overflow: hidden;

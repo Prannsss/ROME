@@ -105,7 +105,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                             ?>
                             <div class="property-thumbnail-container">
                                 <img class="card-img-top property-thumbnail"
-                                     src="<?php echo htmlspecialchars($firstImagePath); ?>" 
+                                     src="<?php echo htmlspecialchars($firstImagePath); ?>"
                                      alt="<?php echo htmlspecialchars($property['fullname']); ?>"
                                      onerror="this.onerror=null; this.src='/ROME/assets/img/default-property.jpg';">
                                 <?php
@@ -190,7 +190,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
 
 <!-- Property Details Modal -->
 <div class="modal fade" id="propertyDetailsModal" tabindex="-1" role="dialog" aria-labelledby="propertyDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl" role="document"> <!-- Use modal-xl for wider modal -->
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header border-0">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -199,31 +199,16 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
             </div>
             <div class="modal-body pt-0">
                 <div id="propertyDetailsContent" class="row">
-                    <!-- Details Column (Now on Left) -->
+                    <!-- Details Column -->
                     <div class="col-md-5" id="modalDetailsContainer">
-                        <!-- Details will be loaded here by JS -->
-                        <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="sr-only">Loading details...</span>
-                            </div>
-                        </div>
+                        <!-- Property details will be loaded here by JS -->
                     </div>
-                    <!-- Image Carousel Column (Now on Right) -->
+                    <!-- Image Carousel Column -->
                     <div class="col-md-7" id="modalCarouselContainer">
-                        <!-- Carousel will be loaded here by JS -->
-                        <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="sr-only">Loading images...</span>
-                            </div>
-                        </div>
+                        <!-- Image carousel will be loaded here by JS -->
                     </div>
                 </div>
             </div>
-            <!-- Optional: Footer can be removed or kept minimal if actions are in the details section -->
-            <!-- <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="scheduleViewingBtn">Schedule Viewing</button>
-            </div> -->
         </div>
     </div>
 </div>
