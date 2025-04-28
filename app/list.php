@@ -235,101 +235,8 @@
 </head>
 <body>
     <div id="wrapper">
-        <!-- Sidebar -->
-        <div id="sidebar-wrapper">
-            <a href="#" class="sidebar-brand">
-                <i class="fas fa-home"></i> ROME
-            </a>
-            <hr class="sidebar-divider">
-
-            <div class="sidebar-heading">
-                Core
-            </div>
-
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="../auth/dashboard.php" class="nav-link">
-                        <i class="fas fa-fw fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-            </ul>
-
-            <hr class="sidebar-divider">
-
-            <div class="sidebar-heading">
-                Management
-            </div>
-
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="list.php" class="nav-link active">
-                        <i class="fas fa-fw fa-building"></i>
-                        <span>Room Management</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="users.php" class="nav-link">
-                        <i class="fas fa-fw fa-users"></i>
-                        <span>Tenant Management</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-calendar-check"></i>
-                        <span>Reservations</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-money-bill-wave"></i>
-                        <span>Payments & Bills</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-tools"></i>
-                        <span>Maintenance Requests</span>
-                    </a>
-                </li>
-            </ul>
-
-            <hr class="sidebar-divider">
-
-            <div class="sidebar-heading">
-                Reports
-            </div>
-
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-chart-area"></i>
-                        <span>Reports & Analytics</span>
-                    </a>
-                </li>
-            </ul>
-
-            <hr class="sidebar-divider">
-
-            <div class="sidebar-heading">
-                Account
-            </div>
-
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-cog"></i>
-                        <span>Settings</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="../auth/logout.php" class="nav-link">
-                        <i class="fas fa-fw fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
+        <!-- Include Sidebar Component -->
+        <?php include_once('../auth/includes/sidebar.php'); ?>
 
         <!-- Content Wrapper -->
         <div id="content-wrapper">
@@ -407,24 +314,38 @@
 
                                             <div class="mt-3">
                                                 <?php
-                                                    $imagePath = '/ROME/assets/img/default-property.jpg'; // Default image
-                                                    // Check if image field is not empty and not the default placeholder 'uploads/'
-                                                    if (!empty($value['image']) && $value['image'] !== 'uploads/') {
-                                                        $imageJson = $value['image'];
-                                                        $imagePaths = json_decode($imageJson, true);
-                                                        // Check if JSON decoding was successful and the array is not empty
-                                                        if (json_last_error() === JSON_ERROR_NONE && is_array($imagePaths) && !empty($imagePaths[0])) {
-                                                            // Prepend the base path to the relative path from the DB
-                                                            $firstImageRelativePath = $imagePaths[0];
-                                                            // Assuming paths stored are like 'uploads/image.jpg'
-                                                            $imagePath = '/ROME/app/' . ltrim($firstImageRelativePath, '/');
-                                                        } // If JSON is invalid or empty, the default image remains
+                                                    $defaultImage = '/ROME/assets/img/default-property.jpg';
+                                                    $imagePath = $defaultImage;
+
+                                                    if (!empty($value['image'])) {
+                                                        // Remove any 'uploads/' prefix if present
+                                                        $imageValue = str_replace('uploads/', '', $value['image']);
+
+                                                        // Try to decode JSON first
+                                                        $decodedImages = json_decode($value['image'], true);
+
+                                                        if (json_last_error() === JSON_ERROR_NONE && is_array($decodedImages)) {
+                                                            // Handle JSON array of images - take first image
+                                                            if (!empty($decodedImages[0])) {
+                                                                $imageValue = str_replace('uploads/', '', $decodedImages[0]);
+                                                                $fullImagePath = __DIR__ . '/uploads/' . $imageValue;
+                                                                if (file_exists($fullImagePath)) {
+                                                                    $imagePath = '/ROME/app/uploads/' . $imageValue;
+                                                                }
+                                                            }
+                                                        } else {
+                                                            // Handle single image path
+                                                            $fullImagePath = __DIR__ . '/uploads/' . $imageValue;
+                                                            if (file_exists($fullImagePath)) {
+                                                                $imagePath = '/ROME/app/uploads/' . $imageValue;
+                                                            }
+                                                        }
                                                     }
                                                 ?>
                                                 <img src="<?php echo htmlspecialchars($imagePath); ?>"
-                                                     class="property-image" 
-                                                     alt="Property Image" 
-                                                     onerror="this.onerror=null; this.src='/ROME/assets/img/default-property.jpg';" 
+                                                     class="property-image"
+                                                     alt="Property Image"
+                                                     onerror="this.onerror=null; this.src='<?php echo $defaultImage; ?>';"
                                                      style="max-width: 100px; max-height: 70px; object-fit: cover; border-radius: 5px;">
                                             </div>
                                         </div>
@@ -526,25 +447,3 @@
 </body>
 </html>
 <script>$(document).ready(function() { $('.delete-btn').click(function(e) { e.preventDefault(); var roomId = $(this).data('id'); Swal.fire({ title: 'Are you sure?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!' }).then((result) => { if (result.isConfirmed) { $.ajax({ url: 'delete.php', type: 'POST', data: { id: roomId }, success: function(response) { Swal.fire( 'Deleted!', 'Your file has been deleted.', 'success' ).then(() => { location.reload(); }); }, error: function() { Swal.fire( 'Error!', 'There was an error deleting the room.', 'error' ); } }); } }); }); });</script>
-
-//Decode image JSON and prepare paths
-$imageJson = $property['image'];
-$imagePaths = json_decode($imageJson, true);
-$displayImagePaths = [];
-$defaultImage = '/ROME/assets/img/default-property.jpg';
-
-if (json_last_error() === JSON_ERROR_NONE && is_array($imagePaths) && !empty($imagePaths)) {
-    foreach ($imagePaths as $relativePath) {
-        $webPath = '/ROME/app/' . ltrim(trim($relativePath), '/');
-        if (!empty(trim($relativePath))) {
-            $displayImagePaths[] = $webPath;
-        }
-    }
-}
-
-if (empty($displayImagePaths)) {
-    $displayImagePaths[] = $defaultImage;
-}
-
-$firstImagePath = $displayImagePaths[0];
-$allImagesJson = htmlspecialchars(json_encode($displayImagePaths), ENT_QUOTES, 'UTF-8');

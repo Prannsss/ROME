@@ -310,7 +310,7 @@ try {
     <div id="wrapper">
         <!-- Include Sidebar Component -->
         <?php include_once('includes/sidebar.php'); ?>
-        
+
         <!-- Content Wrapper -->
         <div id="content-wrapper">
             <!-- Topbar -->

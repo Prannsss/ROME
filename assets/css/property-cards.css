@@ -116,7 +116,7 @@
 /* Ensure carousel images fit well */
 #modalCarouselContainer {
     padding: 20px; /* Add padding around the image */
-    padding-right: 30px; /* Ensure spacing on the right side of the image */
+    padding-right: 10px; /* Ensure spacing on the right side of the image */
 }
 
 .property-actions {

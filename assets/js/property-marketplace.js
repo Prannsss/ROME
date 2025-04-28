@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             try {
                 propertyImages = JSON.parse(imagesJson);
+                console.log('Parsed images:', propertyImages); // Debug log
                 if (!Array.isArray(propertyImages) || propertyImages.length === 0) {
                     propertyImages = ['/ROME/assets/img/default-property.jpg'];
                 }
@@ -69,35 +70,38 @@ document.addEventListener('DOMContentLoaded', function() {
             const modalDetailsContainer = document.getElementById('modalDetailsContainer');
             const carouselId = `modalCarousel_${propertyId}`;
 
-            // --- Generate Carousel HTML ---
-            let carouselIndicators = '';
-            let carouselInner = '';
-            propertyImages.forEach((imgSrc, index) => {
-                const activeClass = index === 0 ? 'active' : '';
-                carouselIndicators += `<li data-target="#${carouselId}" data-slide-to="${index}" class="${activeClass}"></li>`;
-                carouselInner += `
-                    <div class="carousel-item ${activeClass}">
-                        <img src="${imgSrc}" class="d-block" alt="${propertyName} - Image ${index + 1}" onerror="this.onerror=null; this.src='/ROME/assets/img/default-property.jpg';">
-                    </div>`;
-            });
-
+            // Generate carousel items for ALL images
             const carouselHTML = `
                 <div id="${carouselId}" class="carousel slide" data-ride="carousel">
                     <ol class="carousel-indicators">
-                        ${carouselIndicators}
+                        ${propertyImages.map((_, index) => `
+                            <li data-target="#${carouselId}"
+                                data-slide-to="${index}"
+                                class="${index === 0 ? 'active' : ''}"
+                                aria-label="Slide ${index + 1}">
+                            </li>
+                        `).join('')}
                     </ol>
                     <div class="carousel-inner">
-                        ${carouselInner}
+                        ${propertyImages.map((imgSrc, index) => `
+                            <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                                <img src="${imgSrc}"
+                                     class="d-block w-100"
+                                     alt="${propertyName} - Image ${index + 1}"
+                                     onerror="this.onerror=null; this.src='/ROME/assets/img/default-property.jpg';">
+                            </div>
+                        `).join('')}
                     </div>
                     ${propertyImages.length > 1 ? `
-                    <a class="carousel-control-prev" href="#${carouselId}" role="button" data-slide="prev">
-                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        <span class="sr-only">Previous</span>
-                    </a>
-                    <a class="carousel-control-next" href="#${carouselId}" role="button" data-slide="next">
-                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        <span class="sr-only">Next</span>
-                    </a>` : ''}
+                        <a class="carousel-control-prev" href="#${carouselId}" role="button" data-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="sr-only">Previous</span>
+                        </a>
+                        <a class="carousel-control-next" href="#${carouselId}" role="button" data-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="sr-only">Next</span>
+                        </a>
+                    ` : ''}
                 </div>
             `;
 
@@ -279,4 +283,96 @@ document.addEventListener('DOMContentLoaded', function() {
             alert(message);
         }
     }
+});
+
+$(document).on('click', '.view-details', function() {
+    var button = $(this);
+    var images;
+
+    try {
+        images = JSON.parse(button.attr('data-images')) || [];
+        // If images array is empty or invalid, use default image
+        if (!Array.isArray(images) || images.length === 0) {
+            images = ['/ROME/assets/img/default-property.jpg'];
+        }
+    } catch (e) {
+        console.error('Error parsing images:', e);
+        images = ['/ROME/assets/img/default-property.jpg'];
+    }
+
+    var modalCarousel = $('#propertyImageCarousel');
+    var indicators = '';
+    var slides = '';
+
+    // Clear existing carousel items
+    modalCarousel.find('.carousel-indicators').empty();
+    modalCarousel.find('.carousel-inner').empty();
+
+    // Generate new carousel items
+    images.forEach(function(imagePath, index) {
+        // Create indicator
+        indicators += `
+            <li data-target="#propertyImageCarousel"
+                data-slide-to="${index}"
+                class="${index === 0 ? 'active' : ''}"
+                aria-label="Slide ${index + 1}">
+            </li>`;
+
+        // Create slide with error handling for images
+        slides += `
+            <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                <img src="${imagePath}"
+                     class="d-block w-100"
+                     alt="Property Image ${index + 1}"
+                     onerror="this.onerror=null; this.src='/ROME/assets/img/default-property.jpg';">
+            </div>`;
+    });
+
+    // Update carousel structure
+    modalCarousel.html(`
+        <ol class="carousel-indicators">
+            ${indicators}
+        </ol>
+        <div class="carousel-inner">
+            ${slides}
+        </div>
+        ${images.length > 1 ? `
+            <a class="carousel-control-prev" href="#propertyImageCarousel" role="button" data-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="sr-only">Previous</span>
+            </a>
+            <a class="carousel-control-next" href="#propertyImageCarousel" role="button" data-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="sr-only">Next</span>
+            </a>
+        ` : ''}
+    `);
+
+    // Initialize carousel with options
+    modalCarousel.carousel({
+        interval: false, // Disable auto-sliding
+        keyboard: true, // Enable keyboard control
+        touch: true,    // Enable touch swipe
+        pause: 'hover'  // Pause on hover
+    });
+
+    // Update other modal content
+    $('#modalDetailsContainer').html(`
+        <h3>${button.data('name')}</h3>
+        <div class="h4">₱${button.data('rent').toLocaleString()}/month</div>
+        <div class="detail-item">
+            <i class="fas fa-door-open"></i> ${button.data('rooms')}
+        </div>
+        <div class="detail-item">
+            <i class="fas fa-map-marker-alt"></i> ${button.data('address')}
+        </div>
+        <div class="description mt-3">
+            ${button.data('description') || 'No description available'}
+        </div>
+        <div class="actions mt-3">
+            <button class="btn btn-primary btn-block">
+                Contact Owner
+            </button>
+        </div>
+    `);
 });

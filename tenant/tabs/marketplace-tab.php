@@ -69,45 +69,60 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                         <div class="card property-card h-100">
                             <!-- Thumbnail container -->
                             <?php
-                                // --- Updated Image Logic to handle JSON --- 
-                                $imageJson = $property['image'];
-                                $imagePaths = json_decode($imageJson, true);
-                                $displayImagePaths = []; // Array to hold final, web-accessible paths
+                                // Improved image path handling
                                 $defaultImage = '/ROME/assets/img/default-property.jpg';
+                                $firstImagePath = $defaultImage;
+                                $displayImagePaths = [$defaultImage];
 
-                                if (json_last_error() === JSON_ERROR_NONE && is_array($imagePaths) && !empty($imagePaths)) {
-                                    foreach ($imagePaths as $relativePath) {
-                                        // Assuming paths stored are like 'uploads/image.jpg'
-                                        // Construct the web-accessible path relative to the web root
-                                        $webPath = '/ROME/app/' . ltrim(trim($relativePath), '/');
-                                        // Basic check if the file might exist (optional, can be slow)
-                                        // if (file_exists($_SERVER['DOCUMENT_ROOT'] . $webPath)) { 
-                                        //     $displayImagePaths[] = $webPath;
-                                        // } else {
-                                        //     // Log missing file? 
-                                        // }
-                                        // For simplicity, assume path is correct and add it
-                                        if (!empty(trim($relativePath))) {
-                                            $displayImagePaths[] = $webPath;
+                                if (!empty($property['image']) && $property['image'] !== 'uploads/') {
+                                    try {
+                                        // First, try to decode as JSON
+                                        $decodedImages = json_decode($property['image'], true);
+
+                                        if (json_last_error() === JSON_ERROR_NONE && is_array($decodedImages)) {
+                                            // Handle JSON array of images
+                                            $displayImagePaths = [];
+                                            foreach ($decodedImages as $imgPath) {
+                                                if (!empty($imgPath)) {
+                                                    // Clean up the path and ensure proper format
+                                                    $imgPath = ltrim($imgPath, '/');
+                                                    $imagePath = "/ROME/app/" . $imgPath; // Prepend the base path when displaying
+                                                    $displayImagePaths[] = $imagePath;
+                                                }
+                                            }
+                                            // Set first image if available
+                                            if (!empty($displayImagePaths)) {
+                                                $firstImagePath = $displayImagePaths[0];
+                                            }
+                                        } else {
+                                            // Handle single image path
+                                            $imagePath = ltrim($property['image'], '/');
+                                            $imagePath = "/ROME/app/" . $imagePath; // Prepend the base path when displaying
+                                            $firstImagePath = $imagePath;
+                                            $displayImagePaths = [$imagePath];
                                         }
+                                    } catch (Exception $e) {
+                                        error_log("Image processing error for property {$property['id']}: " . $e->getMessage());
+                                        $firstImagePath = $defaultImage;
+                                        $displayImagePaths = [$defaultImage];
                                     }
                                 }
 
-                                // If no valid images were found after processing, use the default
-                                if (empty($displayImagePaths)) {
-                                    $displayImagePaths[] = $defaultImage;
-                                }
+                                // Debug output (remove in production)
+                                error_log("Property {$property['id']} images: " . print_r([
+                                    'original' => $property['image'],
+                                    'first' => $firstImagePath,
+                                    'all' => $displayImagePaths
+                                ], true));
 
-                                $firstImagePath = $displayImagePaths[0]; // Use the first valid or default image for the card thumbnail
-                                // Ensure the JSON passed to the modal uses the correctly constructed web paths
-                                $allImagesJson = htmlspecialchars(json_encode($displayImagePaths), ENT_QUOTES, 'UTF-8'); 
-                                // --- End Updated Image Logic ---
+                                // Prepare image paths for modal
+                                $allImagesJson = htmlspecialchars(json_encode($displayImagePaths), ENT_QUOTES, 'UTF-8');
                             ?>
                             <div class="property-thumbnail-container">
                                 <img class="card-img-top property-thumbnail"
                                      src="<?php echo htmlspecialchars($firstImagePath); ?>"
                                      alt="<?php echo htmlspecialchars($property['fullname']); ?>"
-                                     onerror="this.onerror=null; this.src='/ROME/assets/img/default-property.jpg';">
+                                     onerror="this.onerror=null; this.src='<?php echo $defaultImage; ?>';">
                                 <?php
                                     // Badges remain the same
                                     $vacantStatus = isset($property['vacant']) && (int)$property['vacant'] === 1;
@@ -197,20 +212,15 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body pt-0">
-                <div id="propertyDetailsContent" class="row">
-                    <!-- Details Column -->
-                    <div class="col-md-5" id="modalDetailsContainer">
-                        <!-- Property details will be loaded here by JS -->
-                    </div>
-                    <!-- Image Carousel Column -->
+            <div class="modal-body p-0">
+                <div class="row no-gutters">
                     <div class="col-md-7" id="modalCarouselContainer">
                         <div id="propertyImageCarousel" class="carousel slide" data-ride="carousel">
                             <ol class="carousel-indicators">
-                                <!-- Indicators will be added by JS -->
+                                <!-- Indicators will be dynamically added -->
                             </ol>
                             <div class="carousel-inner">
-                                <!-- Carousel items will be added by JS -->
+                                <!-- Images will be dynamically added -->
                             </div>
                             <a class="carousel-control-prev" href="#propertyImageCarousel" role="button" data-slide="prev">
                                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -220,6 +230,24 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                                 <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                 <span class="sr-only">Next</span>
                             </a>
+                        </div>
+                    </div>
+                    <div class="col-md-5" id="modalDetailsContainer">
+                        <span class="status-badge available">Available</span>
+                        <h3 class="property-title"></h3>
+                        <div class="price">₱<span class="amount"></span>/month</div>
+                        <div class="detail-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span class="location"></span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-home"></i>
+                            <span class="rooms"></span>
+                        </div>
+                        <div class="property-description"></div>
+                        <div class="action-buttons">
+                            <button class="btn btn-schedule">Schedule Viewing</button>
+                            <button class="btn btn-reserve">Reserve</button>
                         </div>
                     </div>
                 </div>

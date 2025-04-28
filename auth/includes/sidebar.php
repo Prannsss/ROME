@@ -4,11 +4,11 @@
         <i class="fas fa-home"></i> ROME
     </a>
     <hr class="sidebar-divider">
-    
+
     <div class="sidebar-heading">
         Core
     </div>
-    
+
     <ul class="nav flex-column">
         <li class="nav-item">
             <a href="../auth/dashboard.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>">
@@ -17,13 +17,13 @@
             </a>
         </li>
     </ul>
-    
+
     <hr class="sidebar-divider">
-    
+
     <div class="sidebar-heading">
         Management
     </div>
-    
+
     <ul class="nav flex-column">
         <li class="nav-item">
             <a href="../app/list.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'list.php' ? 'active' : ''; ?>">
@@ -50,55 +50,55 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="../app/payments.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'payments.php' ? 'active' : ''; ?>">
                 <i class="fas fa-fw fa-money-bill-wave"></i>
                 <span>Payments & Bills</span>
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="../app/maintenance-requests.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'maintenance-requests.php' ? 'active' : ''; ?>">
                 <i class="fas fa-fw fa-tools"></i>
                 <span>Maintenance Requests</span>
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="../app/visitor-logs.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'visitor-logs.php' ? 'active' : ''; ?>">
                 <i class="fas fa-fw fa-clipboard-list"></i>
                 <span>Visitor Logs</span>
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="../app/lease-renewals.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'lease-renewals.php' ? 'active' : ''; ?>">
                 <i class="fas fa-fw fa-file-contract"></i>
                 <span>Lease Renewals</span>
             </a>
         </li>
     </ul>
-    
+
     <hr class="sidebar-divider">
-    
+
     <div class="sidebar-heading">
         Reports
     </div>
-    
+
     <ul class="nav flex-column">
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="../app/reports-and-analytics.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'reports-and-analytics.php' ? 'active' : ''; ?>">
                 <i class="fas fa-fw fa-chart-area"></i>
                 <span>Reports & Analytics</span>
             </a>
         </li>
     </ul>
-    
+
     <hr class="sidebar-divider">
-    
+
     <div class="sidebar-heading">
         Account
     </div>
-    
+
     <ul class="nav flex-column">
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="../app/settings.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'settings.php' ? 'active' : ''; ?>">
                 <i class="fas fa-fw fa-cog"></i>
                 <span>Settings</span>
             </a>

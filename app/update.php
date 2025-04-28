@@ -4,151 +4,136 @@
 	if(empty($_SESSION['username']))
 		header('Location: login.php'); // Assuming login.php is the correct path relative to update.php
 
-		if ( isset($_GET['id'])) {
-			$id = $_REQUEST['id'];
-		}
+	// Add this near the top of the file after session_start()
+	if (!file_exists(__DIR__ . '/uploads')) {
+		mkdir(__DIR__ . '/uploads', 0777, true);
+	}
 
-		if ( isset($_GET['act'])) {
-			$active = $_REQUEST['act'];
+	if ( isset($_GET['id'])) {
+		$id = $_REQUEST['id'];
+	}
 
-			if ($active === 'ap') {
-				# code...
-				try {
-					$stmt = $connect->prepare('SELECT * FROM room_rental_registrations_apartment where id = :id');
-					$stmt->execute(array(
-						':id' => $id
-					));
-					$data = $stmt->fetch(PDO::FETCH_ASSOC);
-				}catch(PDOException $e) {
-					$errMsg = $e->getMessage();
-				}
-			}else{
-				try{
-					$stmt = $connect->prepare('SELECT * FROM room_rental_registrations where id = :id');
-					$stmt->execute(array(
-						':id' => $id
-					));
-					$data = $stmt->fetch(PDO::FETCH_ASSOC);
-				}catch(PDOException $e) {
-					echo $e->getMessage();
-				}
+	if ( isset($_GET['act'])) {
+		$active = $_REQUEST['act'];
+
+		if ($active === 'ap') {
+			# code...
+			try {
+				$stmt = $connect->prepare('SELECT * FROM room_rental_registrations_apartment where id = :id');
+				$stmt->execute(array(
+					':id' => $id
+				));
+				$data = $stmt->fetch(PDO::FETCH_ASSOC);
+			}catch(PDOException $e) {
+				$errMsg = $e->getMessage();
+			}
+		}else{
+			try{
+				$stmt = $connect->prepare('SELECT * FROM room_rental_registrations where id = :id');
+				$stmt->execute(array(
+					':id' => $id
+				));
+				$data = $stmt->fetch(PDO::FETCH_ASSOC);
+			}catch(PDOException $e) {
+				echo $e->getMessage();
 			}
 		}
+	}
 
-		if(isset($_POST['register_individuals'])) {
-			$errMsg = '';
-			// Get data from FROM
-			$fullname = $_POST['fullname'];
-			$email = $_POST['email'];
-			$mobile = $_POST['mobile'];
-			$alternat_mobile = $_POST['alternat_mobile'];
-			$plot_number = $_POST['plot_number'];
-			$country = $_POST['country'];
-			$state = $_POST['state'];
-			$city = $_POST['city'];
-			$address = $_POST['address'];
-			$landmark = $_POST['landmark'];
-			$rent = $_POST['rent'];
-			$deposit = $_POST['deposit'];
-			$description = $_POST['description'];
-			//$open_for_sharing = $_POST['open_for_sharing'];
-			$user_id = $_SESSION['id'];
-			$accommodation = $_POST['accommodation'];
-			//$image = $_POST['image']?$_POST['image']:NULL;
-			$other = $_POST['other'];
-			$vacant = $_POST['vacant'];
-			$rooms = $_POST['rooms'];
-			$id = $_POST['id'];
-			$sale = $_POST['sale'];
-			$current_image = $_POST['current_image']; // Get current image filename
+	if(isset($_POST['register_individuals'])) {
+		$errMsg = '';
+		// Get data from FROM
+		$fullname = $_POST['fullname'];
+		$email = $_POST['email'];
+		$mobile = $_POST['mobile'];
+		$alternat_mobile = $_POST['alternat_mobile'];
+		$plot_number = $_POST['plot_number'];
+		$country = $_POST['country'];
+		$state = $_POST['state'];
+		$city = $_POST['city'];
+		$address = $_POST['address'];
+		$landmark = $_POST['landmark'];
+		$rent = $_POST['rent'];
+		$deposit = $_POST['deposit'];
+		$description = $_POST['description'];
+		//$open_for_sharing = $_POST['open_for_sharing'];
+		$user_id = $_SESSION['id'];
+		$accommodation = $_POST['accommodation'];
+		//$image = $_POST['image']?$_POST['image']:NULL;
+		$other = $_POST['other'];
+		$vacant = $_POST['vacant'];
+		$rooms = $_POST['rooms'];
+		$id = isset($_POST['id']) ? $_POST['id'] : null; // Add proper id check
+		$sale = $_POST['sale'];
+		$current_image = isset($_POST['current_image']) ? $_POST['current_image'] : ''; // Add proper current_image check
 
-			// Image Upload Handling
-			$image_filename = $current_image; // Default to current image
-			$upload_dir = '../uploads/';
-			
-			if (isset($_FILES['image']) && $_FILES['image']['error'] == UPLOAD_ERR_OK) {
-				$file_tmp_path = $_FILES['image']['tmp_name'];
-				$file_name = $_FILES['image']['name'];
-				$file_size = $_FILES['image']['size'];
-				$file_type = $_FILES['image']['type'];
-				$file_name_parts = explode('.', $file_name);
-				$file_ext = strtolower(end($file_name_parts));
+		// Image Upload Handling
+		$image_filename = $current_image; // Default to current image
 
-				$allowed_ext = ['jpg', 'jpeg', 'png', 'gif'];
+		if (isset($_FILES['image']) && $_FILES['image']['error'] == UPLOAD_ERR_OK) {
+			$file_tmp_path = $_FILES['image']['tmp_name'];
+			$file_name = $_FILES['image']['name'];
+			$file_size = $_FILES['image']['size'];
+			$file_type = $_FILES['image']['type'];
 
-				if (in_array($file_ext, $allowed_ext)) {
-					if ($file_size < 5000000) { // Max 5MB
-						// Generate unique filename
-						$new_filename = uniqid('img_', true) . '.' . $file_ext;
-						$dest_path = $upload_dir . $new_filename;
+			// Sanitize file extension
+			$file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+			$allowed_ext = ['jpg', 'jpeg', 'png', 'gif'];
 
-						if (move_uploaded_file($file_tmp_path, $dest_path)) {
-							$image_filename = $new_filename; // Update filename for DB
+			if (in_array($file_ext, $allowed_ext)) {
+				if ($file_size < 5000000) { // Max 5MB
+					// Generate unique filename
+					$new_filename = 'img_' . uniqid() . '.' . $file_ext;
+					$upload_path = 'uploads/' . $new_filename;
+					$dest_path = __DIR__ . '/' . $upload_path;
 
-							// Delete old image if it exists and is different
-							if (!empty($current_image) && $current_image != $image_filename && file_exists($upload_dir . $current_image)) {
-								@unlink($upload_dir . $current_image); // Use @ to suppress errors if file not found
+					if (move_uploaded_file($file_tmp_path, $dest_path)) {
+						// Delete old image if exists
+						if (!empty($current_image)) {
+							$old_file_path = __DIR__ . '/' . $current_image;
+							if (file_exists($old_file_path)) {
+								@unlink($old_file_path);
 							}
-						} else {
-							$errMsg = 'Error moving uploaded file.';
 						}
+						$image_filename = $upload_path;
 					} else {
-						$errMsg = 'File is too large. Maximum size is 5MB.';
+						$errMsg = 'Error moving uploaded file.';
 					}
 				} else {
-					$errMsg = 'Invalid file type. Only JPG, JPEG, PNG, GIF allowed.';
+					$errMsg = 'File is too large. Maximum size is 5MB.';
 				}
-			} elseif (isset($_FILES['image']) && $_FILES['image']['error'] != UPLOAD_ERR_NO_FILE) {
-				// Handle other upload errors
-				$errMsg = 'File upload error: ' . $_FILES['image']['error'];
+			} else {
+				$errMsg = 'Invalid file type. Only JPG, JPEG, PNG, GIF allowed.';
 			}
+		}
 
-			// Proceed with DB update only if no upload error occurred
-			if (empty($errMsg)) {
-				try {
-					// Format the image filename into a JSON array string
-					$image_json = null;
-					if (!empty($image_filename)) {
-						// Construct the relative path for the JSON string
-						// Note: $upload_dir already has a trailing slash if needed, but we prepend 'uploads/' for consistency
-						$image_path_for_json = 'uploads/' . $image_filename;
-						$image_json = json_encode([$image_path_for_json]);
-					}
+		// Proceed with DB update only if we have an ID and no upload errors
+		if ($id && empty($errMsg)) {
+			try {
+				$stmt = $connect->prepare('UPDATE room_rental_registrations SET
+					fullname = ?, email = ?, mobile = ?, alternat_mobile = ?,
+					plot_number = ?, rooms = ?, country = ?, state = ?,
+					city = ?, address = ?, landmark = ?, rent = ?,
+					sale = ?, deposit = ?, description = ?, accommodation = ?,
+					vacant = ?, user_id = ?, image = ? WHERE id = ?');
 
-					// Update the SQL query to include the image column (now storing JSON)
-					$stmt = $connect->prepare('UPDATE room_rental_registrations SET fullname = ?,  email = ?, mobile = ?, alternat_mobile = ?, plot_number = ?, rooms = ?, country = ?, state = ?, city = ?, address = ?, landmark = ?, rent = ?, sale=?, deposit = ?, description = ?, accommodation = ?, vacant = ?, user_id = ?, image = ? WHERE id = ?');
-					$stmt->execute(array(
-						$fullname,
-						$email,
-						$mobile,
-						$alternat_mobile,
-						$plot_number,
-						$rooms,
-					 	$country,
-						$state,
-						$city,
-						$address,
-						$landmark,
-						$rent,
-						$sale,
-						$deposit,
-						$description,
-						$accommodation,
-						$vacant,
-						$user_id,
-						$image_json, // Bind the JSON formatted image string
-						$id
-					));
+				$stmt->execute(array(
+					$fullname, $email, $mobile, $alternat_mobile,
+					$plot_number, $rooms, $country, $state,
+					$city, $address, $landmark, $rent,
+					$sale, $deposit, $description, $accommodation,
+					$vacant, $user_id, $image_filename, $id
+				));
 
-					// Edit 1: Set session message and redirect to list.php
-					$_SESSION['update_success_message'] = 'Update successful. Thank you';
-					header('Location: list.php'); // New redirect
-					exit;
-				}catch(PDOException $e) {
-					// Consider setting an error message in session or displaying it differently
-					$errMsg = "Database Error: " . $e->getMessage(); // Store error for potential display
-				}
-			} // End if(empty($errMsg))
+				$_SESSION['update_success_message'] = 'Update successful. Thank you';
+				header('Location: list.php');
+				exit;
+			} catch(PDOException $e) {
+				$errMsg = "Database Error: " . $e->getMessage();
+			}
+		} else if (!$id) {
+			$errMsg = "Invalid ID provided";
+		}
 	}
 
 
@@ -233,7 +218,7 @@
 		$updateSuccessMessage = $_SESSION['update_success_message'];
 		unset($_SESSION['update_success_message']); // Clear the message
 	}
-    
+
 ?>
 <?php include '../include/header.php';?>
 
@@ -249,11 +234,11 @@
             <i class="fas fa-home"></i> ROME
         </a>
         <hr class="sidebar-divider">
-        
+
         <div class="sidebar-heading">
             Core
         </div>
-        
+
         <ul class="nav flex-column">
             <li class="nav-item">
                 <a href="../auth/dashboard.php" class="nav-link">
@@ -262,13 +247,13 @@
                 </a>
             </li>
         </ul>
-        
+
         <hr class="sidebar-divider">
-        
+
         <div class="sidebar-heading">
             Management
         </div>
-        
+
         <ul class="nav flex-column">
             <li class="nav-item">
                 <a href="list.php" class="nav-link">
@@ -301,13 +286,13 @@
                 </a>
             </li>
         </ul>
-        
+
         <hr class="sidebar-divider">
-        
+
         <div class="sidebar-heading">
             Account
         </div>
-        
+
         <ul class="nav flex-column">
             <li class="nav-item">
                 <a href="#" class="nav-link">
@@ -323,7 +308,7 @@
             </li>
         </ul>
     </div>
-    
+
     <!-- Content Wrapper -->
     <div id="content-wrapper">
         <!-- Topbar -->
@@ -331,14 +316,14 @@
             <button id="sidebarToggleBtn" class="btn btn-link">
                 <i class="fas fa-bars"></i>
             </button>
-            
+
             <div class="d-none d-md-inline-block form-inline ml-auto mr-0 mr-md-3 my-2 my-md-0">
                 <div class="user-info">
                     <span><?php echo $_SESSION['fullname']; ?> <?php if($_SESSION['role'] == 'admin'){ echo "(Admin)"; } ?></span>
                 </div>
             </div>
         </div>
-        
+
         <!-- Main Content -->
         <div id="content">
             <div class="container-fluid">
@@ -346,7 +331,7 @@
                 <div class="d-sm-flex align-items-center justify-content-between mb-4">
                     <h1 class="h3 mb-0 text-gray-800">Update Property Information</h1>
                 </div>
-                
+
                 <?php // Display general errors (like DB errors from POST), but not the success message here ?>
                 <?php if(isset($errMsg) && !$updateSuccessMessage){ ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -373,6 +358,8 @@
                                 }
                             }
                         ?>
+                        <input type="hidden" name="id" value="<?php echo htmlspecialchars($data['id']); ?>">
+                        <input type="hidden" name="current_image" value="<?php echo htmlspecialchars($data['image']); ?>">
                     </div>
                 </div>
             </div>
@@ -391,16 +378,16 @@
         --dark-color: #5a5c69;
         --light-color: #f8f9fc;
     }
-    
+
     body {
         font-family: 'Nunito', sans-serif;
         background-color: #f8f9fc;
     }
-    
+
     #wrapper {
         display: flex;
     }
-    
+
     #sidebar-wrapper {
         min-height: 100vh;
         width: 250px;
@@ -412,11 +399,11 @@
         transition: all 0.3s;
         z-index: 999;
     }
-    
+
     #sidebar-wrapper.toggled {
         margin-left: -250px;
     }
-    
+
     .sidebar-brand {
         height: 70px;
         display: flex;
@@ -428,38 +415,38 @@
         text-decoration: none;
         color: white;
     }
-    
+
     .sidebar-divider {
         border-top: 1px solid rgba(255, 255, 255, 0.15);
         margin: 0 1rem;
     }
-    
+
     .nav-item {
         position: relative;
     }
-    
+
     .nav-link {
         display: block;
         padding: 0.75rem 1rem;
         color: rgba(255, 255, 255, 0.8);
         text-decoration: none;
     }
-    
+
     .nav-link:hover {
         color: white;
         background-color: rgba(255, 255, 255, 0.1);
     }
-    
+
     .nav-link.active {
         color: white;
         font-weight: 700;
     }
-    
+
     .nav-link i {
         margin-right: 0.5rem;
         opacity: 0.75;
     }
-    
+
     .sidebar-heading {
         padding: 0 1rem;
         font-weight: 800;
@@ -468,17 +455,17 @@
         color: rgba(255, 255, 255, 0.4);
         margin-top: 1rem;
     }
-    
+
     #content-wrapper {
         width: 100%;
         margin-left: 250px;
         transition: all 0.3s;
     }
-    
+
     #content {
         padding: 1.5rem;
     }
-    
+
     .topbar {
         height: 70px;
         background-color: white;
@@ -488,68 +475,68 @@
         justify-content: space-between;
         padding: 0 1.5rem;
     }
-    
+
     .card {
         margin-bottom: 1.5rem;
         border: none;
         border-radius: 0.35rem;
         box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
     }
-    
+
     .card-header {
         background-color: #f8f9fc;
         border-bottom: 1px solid #e3e6f0;
     }
-    
+
     .text-primary {
         color: #4e73df !important;
     }
-    
+
     .font-weight-bold {
         font-weight: 700 !important;
     }
-    
+
     .text-gray-800 {
         color: #5a5c69 !important;
     }
-    
+
     /* Form styling */
     .form-control {
         height: 45px;
         border-radius: 4px;
         border: 1px solid #d1d3e2;
     }
-    
+
     .form-control:focus {
         border-color: #bac8f3;
         box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
     }
-    
+
     .btn-primary {
         background-color: #4e73df;
         border-color: #4e73df;
         padding: 0.5rem 1rem;
         font-weight: 500;
     }
-    
+
     .btn-primary:hover {
         background-color: #2e59d9;
         border-color: #2653d4;
     }
-    
+
     @media (max-width: 768px) {
         #sidebar-wrapper {
             margin-left: -250px;
         }
-        
+
         #sidebar-wrapper.toggled {
             margin-left: 0;
         }
-        
+
         #content-wrapper {
             margin-left: 0;
         }
-        
+
         #content-wrapper.toggled {
             margin-left: 250px;
         }
@@ -571,19 +558,19 @@
 	function removeRow(removeNum) {
 		$('#rowCount'+removeNum).remove();
 	}
-	
+
 	// Toggle sidebar
     $("#sidebarToggleBtn").click(function(e) {
         e.preventDefault();
         $("#sidebar-wrapper").toggleClass("toggled");
         $("#content-wrapper").toggleClass("toggled");
     });
-    
+
     // Add active class to current nav item
     $(document).ready(function() {
         var path = window.location.pathname;
         var page = path.split("/").pop();
-        
+
         $(".nav-link").each(function() {
             var href = $(this).attr('href');
             if (href === page || href.indexOf(page) > -1) {
