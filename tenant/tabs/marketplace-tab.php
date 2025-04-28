@@ -69,39 +69,39 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                         <div class="card property-card h-100">
                             <!-- Thumbnail container -->
                             <?php
-                                // --- Simplified Image Logic using updated getEnhancedPropertyImageUrl ---
-                                $imagePathsRaw = $property['image']; // e.g., "image1.jpg;image2.png" or just "image1.jpg"
-                                $displayImagePaths = [];
-                                $delimiter = ';';
+                                // --- Updated Image Logic to handle JSON --- 
+                                $imageJson = $property['image'];
+                                $imagePaths = json_decode($imageJson, true);
+                                $displayImagePaths = []; // Array to hold final, web-accessible paths
+                                $defaultImage = '/ROME/assets/img/default-property.jpg';
 
-                                if (!empty($imagePathsRaw)) {
-                                    if (strpos($imagePathsRaw, $delimiter) !== false) {
-                                        // Multiple images separated by delimiter
-                                        $rawPaths = explode($delimiter, $imagePathsRaw);
-                                        foreach ($rawPaths as $rawPath) {
-                                            $trimmedPath = trim($rawPath);
-                                            if (!empty($trimmedPath)) {
-                                                // Call the updated helper for each path segment
-                                                $displayImagePaths[] = getEnhancedPropertyImageUrl($trimmedPath);
-                                            }
-                                        }
-                                    } else {
-                                        // Single image path
-                                        $trimmedPath = trim($imagePathsRaw);
-                                        if (!empty($trimmedPath)) {
-                                            $displayImagePaths[] = getEnhancedPropertyImageUrl($trimmedPath);
+                                if (json_last_error() === JSON_ERROR_NONE && is_array($imagePaths) && !empty($imagePaths)) {
+                                    foreach ($imagePaths as $relativePath) {
+                                        // Assuming paths stored are like 'uploads/image.jpg'
+                                        // Construct the web-accessible path relative to the web root
+                                        $webPath = '/ROME/app/' . ltrim(trim($relativePath), '/');
+                                        // Basic check if the file might exist (optional, can be slow)
+                                        // if (file_exists($_SERVER['DOCUMENT_ROOT'] . $webPath)) { 
+                                        //     $displayImagePaths[] = $webPath;
+                                        // } else {
+                                        //     // Log missing file? 
+                                        // }
+                                        // For simplicity, assume path is correct and add it
+                                        if (!empty(trim($relativePath))) {
+                                            $displayImagePaths[] = $webPath;
                                         }
                                     }
                                 }
 
-                                // If no valid images were processed/found by the helper, add the default one
+                                // If no valid images were found after processing, use the default
                                 if (empty($displayImagePaths)) {
-                                    $displayImagePaths[] = '/ROME/assets/img/default-property.jpg';
+                                    $displayImagePaths[] = $defaultImage;
                                 }
 
                                 $firstImagePath = $displayImagePaths[0]; // Use the first valid or default image for the card thumbnail
-                                $allImagesJson = htmlspecialchars(json_encode($displayImagePaths), ENT_QUOTES, 'UTF-8'); // Pass all valid paths to the modal
-                                // --- End Simplified Image Logic ---
+                                // Ensure the JSON passed to the modal uses the correctly constructed web paths
+                                $allImagesJson = htmlspecialchars(json_encode($displayImagePaths), ENT_QUOTES, 'UTF-8'); 
+                                // --- End Updated Image Logic ---
                             ?>
                             <div class="property-thumbnail-container">
                                 <img class="card-img-top property-thumbnail"
@@ -121,7 +121,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                             <!-- Card content (Simplified) -->
                             <div class="card-body property-content-simplified p-2">
                                 <!-- Price info -->
-                                <h6 class="card-title property-price mb-0">₹<?php echo number_format((int)$property['rent']); ?>/month</h6>
+                                <h6 class="card-title property-price mb-0">₱<?php echo number_format((int)$property['rent']); ?>/month</h6>
                                 <!-- Removed: Title, Location, Rooms, Sale -->
                             </div>
                             <!-- Actions -->
@@ -205,7 +205,22 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                     </div>
                     <!-- Image Carousel Column -->
                     <div class="col-md-7" id="modalCarouselContainer">
-                        <!-- Image carousel will be loaded here by JS -->
+                        <div id="propertyImageCarousel" class="carousel slide" data-ride="carousel">
+                            <ol class="carousel-indicators">
+                                <!-- Indicators will be added by JS -->
+                            </ol>
+                            <div class="carousel-inner">
+                                <!-- Carousel items will be added by JS -->
+                            </div>
+                            <a class="carousel-control-prev" href="#propertyImageCarousel" role="button" data-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Previous</span>
+                            </a>
+                            <a class="carousel-control-next" href="#propertyImageCarousel" role="button" data-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Next</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

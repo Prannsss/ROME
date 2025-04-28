@@ -26,7 +26,7 @@ function debounce(func, wait) {
  * @returns {string} Formatted price string
  */
 function formatPrice(amount) {
-    return '₹' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return '₱' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 /**

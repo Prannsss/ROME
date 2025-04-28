@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <span class="badge badge-primary mr-2">${propertyRooms}</span>
                                 <span class="badge badge-${isVacant ? 'success' : 'danger'}">${isVacant ? 'Available' : 'Occupied'}</span>
                             </div>
-                            <h5 class="text-primary">₹${propertyRent}/month</h5>
+                            <h5 class="text-primary">₱${propertyRent}/month</h5>
                             <p class="mt-3">Detailed information about this property. Contact us to learn more about amenities and available dates.</p>
                             <hr>
                             <h6>Amenities</h6>

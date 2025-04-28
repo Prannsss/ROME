@@ -357,86 +357,8 @@
 </head>
 <body>
     <div id="wrapper">
-        <!-- Sidebar -->
-        <div id="sidebar-wrapper">
-            <a href="#" class="sidebar-brand">
-                <i class="fas fa-home"></i> ROME
-            </a>
-            <hr class="sidebar-divider">
-            
-            <div class="sidebar-heading">
-                Core
-            </div>
-            
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="../auth/dashboard.php" class="nav-link">
-                        <i class="fas fa-fw fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-            </ul>
-            
-            <hr class="sidebar-divider">
-            
-            <div class="sidebar-heading">
-                Management
-            </div>
-            
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="list.php" class="nav-link">
-                        <i class="fas fa-fw fa-building"></i>
-                        <span>Room Management</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="register.php" class="nav-link active">
-                        <i class="fas fa-fw fa-plus-circle"></i>
-                        <span>Add New Room</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="users.php" class="nav-link">
-                        <i class="fas fa-fw fa-users"></i>
-                        <span>Tenant Management</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-calendar-check"></i>
-                        <span>Reservations</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-money-bill-wave"></i>
-                        <span>Payments & Bills</span>
-                    </a>
-                </li>
-            </ul>
-            
-            <hr class="sidebar-divider">
-            
-            <div class="sidebar-heading">
-                Account
-            </div>
-            
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-cog"></i>
-                        <span>Settings</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="../auth/logout.php" class="nav-link">
-                        <i class="fas fa-fw fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
+        <!-- Include Sidebar Component -->
+        <?php include_once('../auth/includes/sidebar.php'); ?>
         
         <!-- Content Wrapper -->
         <div id="content-wrapper">
@@ -587,10 +509,10 @@
                                             </div>
                                             <div class="col-md-3">
                                                 <div class="form-group">
-                                                    <label for="rent"><i class="fas fa-money-bill-wave mr-1"></i> Rent Amount</label>
+                                                    <label for="rent"><i class="fa-light fa-money-bill-wave"></i> Rent Amount</label>
                                                     <div class="input-group">
                                                         <div class="input-group-prepend">
-                                                            <span class="input-group-text">$</span>
+                                                            <span class="input-group-text">₱</span>
                                                         </div>
                                                         <input type="number" class="form-control" id="rent" name="rent" placeholder="Enter rent amount" required>
                                                     </div>
@@ -601,7 +523,7 @@
                                                     <label for="sale"><i class="fas fa-tag mr-1"></i> Sale Price (if for sale)</label>
                                                     <div class="input-group">
                                                         <div class="input-group-prepend">
-                                                            <span class="input-group-text">$</span>
+                                                            <span class="input-group-text">₱</span>
                                                         </div>
                                                         <input type="number" class="form-control" id="sale" name="sale" placeholder="Enter sale price">
                                                     </div>
@@ -614,7 +536,7 @@
                                                     <label for="deposit"><i class="fas fa-piggy-bank mr-1"></i> Security Deposit</label>
                                                     <div class="input-group">
                                                         <div class="input-group-prepend">
-                                                            <span class="input-group-text">$</span>
+                                                            <span class="input-group-text">₱</span>
                                                         </div>
                                                         <input type="number" class="form-control" id="deposit" name="deposit" placeholder="Enter deposit amount" required>
                                                     </div>

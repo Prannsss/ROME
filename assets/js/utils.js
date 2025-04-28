@@ -22,7 +22,7 @@ function debounce(func, wait) {
  * @return {string} - Formatted amount
  */
 function formatIndianRupee(amount) {
-    return '₹' + parseInt(amount).toLocaleString('en-IN');
+    return '₱' + parseInt(amount).toLocaleString('en-IN');
 }
 
 /**

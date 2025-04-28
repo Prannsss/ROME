@@ -397,17 +397,36 @@
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-md-4">
-                                            <h6 class="font-weight-bold">Owner Details</h6>
-                                            <p class="mb-1"><i class="fas fa-user text-primary mr-2"></i> <?php echo $value['fullname']; ?></p>
-                                            <p class="mb-1"><i class="fas fa-phone text-primary mr-2"></i> <?php echo $value['mobile']; ?></p>
-                                            <p class="mb-1"><i class="fas fa-envelope text-primary mr-2"></i> <?php echo $value['email']; ?></p>
+                                            <h6 class="font-weight-bold">Property</h6> <!-- Changed from Owner Details -->
+                                            <div class="d-flex align-items-center mb-1">
+                                                <i class="fas fa-user text-primary mr-2"></i> <?php echo htmlspecialchars($value['fullname']); ?>
+                                            </div>
+                                            <p class="mb-1"><i class="fas fa-phone text-primary mr-2"></i> <?php echo htmlspecialchars($value['mobile']); ?></p>
+                                            <p class="mb-1"><i class="fas fa-envelope text-primary mr-2"></i> <?php echo htmlspecialchars($value['email']); ?></p>
                                             <p class="mb-1"><i class="fas fa-map-marker-alt text-primary mr-2"></i> <?php echo $value['city'].', '.$value['state']; ?></p>
 
-                                            <?php if ($value['image'] !== 'uploads/'): ?>
                                             <div class="mt-3">
-                                                <img src="<?php echo $value['image']; ?>" class="property-image" alt="Property Image">
+                                                <?php
+                                                    $imagePath = '/ROME/assets/img/default-property.jpg'; // Default image
+                                                    // Check if image field is not empty and not the default placeholder 'uploads/'
+                                                    if (!empty($value['image']) && $value['image'] !== 'uploads/') {
+                                                        $imageJson = $value['image'];
+                                                        $imagePaths = json_decode($imageJson, true);
+                                                        // Check if JSON decoding was successful and the array is not empty
+                                                        if (json_last_error() === JSON_ERROR_NONE && is_array($imagePaths) && !empty($imagePaths[0])) {
+                                                            // Prepend the base path to the relative path from the DB
+                                                            $firstImageRelativePath = $imagePaths[0];
+                                                            // Assuming paths stored are like 'uploads/image.jpg'
+                                                            $imagePath = '/ROME/app/' . ltrim($firstImageRelativePath, '/');
+                                                        } // If JSON is invalid or empty, the default image remains
+                                                    }
+                                                ?>
+                                                <img src="<?php echo htmlspecialchars($imagePath); ?>"
+                                                     class="property-image" 
+                                                     alt="Property Image" 
+                                                     onerror="this.onerror=null; this.src='/ROME/assets/img/default-property.jpg';" 
+                                                     style="max-width: 100px; max-height: 70px; object-fit: cover; border-radius: 5px;">
                                             </div>
-                                            <?php endif; ?>
                                         </div>
 
                                         <div class="col-md-4">
@@ -507,3 +526,25 @@
 </body>
 </html>
 <script>$(document).ready(function() { $('.delete-btn').click(function(e) { e.preventDefault(); var roomId = $(this).data('id'); Swal.fire({ title: 'Are you sure?', text: "You won't be able to revert this!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Yes, delete it!' }).then((result) => { if (result.isConfirmed) { $.ajax({ url: 'delete.php', type: 'POST', data: { id: roomId }, success: function(response) { Swal.fire( 'Deleted!', 'Your file has been deleted.', 'success' ).then(() => { location.reload(); }); }, error: function() { Swal.fire( 'Error!', 'There was an error deleting the room.', 'error' ); } }); } }); }); });</script>
+
+//Decode image JSON and prepare paths
+$imageJson = $property['image'];
+$imagePaths = json_decode($imageJson, true);
+$displayImagePaths = [];
+$defaultImage = '/ROME/assets/img/default-property.jpg';
+
+if (json_last_error() === JSON_ERROR_NONE && is_array($imagePaths) && !empty($imagePaths)) {
+    foreach ($imagePaths as $relativePath) {
+        $webPath = '/ROME/app/' . ltrim(trim($relativePath), '/');
+        if (!empty(trim($relativePath))) {
+            $displayImagePaths[] = $webPath;
+        }
+    }
+}
+
+if (empty($displayImagePaths)) {
+    $displayImagePaths[] = $defaultImage;
+}
+
+$firstImagePath = $displayImagePaths[0];
+$allImagesJson = htmlspecialchars(json_encode($displayImagePaths), ENT_QUOTES, 'UTF-8');

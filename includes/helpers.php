@@ -37,6 +37,6 @@ function getPropertyImageUrl($image) {
  * @return string Formatted amount
  */
 function formatIndianRupee($amount) {
-    return '₹' . number_format((int)$amount);
+    return '₱' . number_format((int)$amount);
 }
 ?>

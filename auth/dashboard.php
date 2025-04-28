@@ -84,7 +84,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ROME Admin Dashboard</title>
-	<link href="../assets/img/rome-logo.png">
+    <link href="../assets/img/rome-logo.png">
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <!-- Font Awesome -->
@@ -308,114 +308,9 @@ try {
 </head>
 <body>
     <div id="wrapper">
-        <!-- Sidebar -->
-        <div id="sidebar-wrapper">
-            <a href="#" class="sidebar-brand">
-                <i class="fas fa-home"></i> ROME
-            </a>
-            <hr class="sidebar-divider">
-
-            <div class="sidebar-heading">
-                Core
-            </div>
-
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="dashboard.php" class="nav-link active">
-                        <i class="fas fa-fw fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-            </ul>
-
-            <hr class="sidebar-divider">
-
-            <div class="sidebar-heading">
-                Management
-            </div>
-
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="../app/list.php" class="nav-link">
-                        <i class="fas fa-fw fa-building"></i>
-                        <span>Room Management</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="../app/users.php" class="nav-link">
-                        <i class="fas fa-fw fa-users"></i>
-                        <span>Tenant Management</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="../app/reservations.php" class="nav-link">
-                        <i class="fas fa-fw fa-calendar-check"></i>
-                        <span>Reservations</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-money-bill-wave"></i>
-                        <span>Payments & Bills</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-tools"></i>
-                        <span>Maintenance Requests</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-clipboard-list"></i>
-                        <span>Visitor Logs</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-file-contract"></i>
-                        <span>Lease Renewals</span>
-                    </a>
-                </li>
-            </ul>
-
-            <hr class="sidebar-divider">
-
-            <div class="sidebar-heading">
-                Reports
-            </div>
-
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-chart-area"></i>
-                        <span>Reports & Analytics</span>
-                    </a>
-                </li>
-            </ul>
-
-            <hr class="sidebar-divider">
-
-            <div class="sidebar-heading">
-                Account
-            </div>
-
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-fw fa-cog"></i>
-                        <span>Settings</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="logout.php" class="nav-link">
-                        <i class="fas fa-fw fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-
+        <!-- Include Sidebar Component -->
+        <?php include_once('includes/sidebar.php'); ?>
+        
         <!-- Content Wrapper -->
         <div id="content-wrapper">
             <!-- Topbar -->

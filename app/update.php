@@ -60,38 +60,95 @@
 			$rooms = $_POST['rooms'];
 			$id = $_POST['id'];
 			$sale = $_POST['sale'];
-			try {
-				$stmt = $connect->prepare('UPDATE room_rental_registrations SET fullname = ?,  email = ?, mobile = ?, alternat_mobile = ?, plot_number = ?, rooms = ?, country = ?, state = ?, city = ?, address = ?, landmark = ?, rent = ?, sale=?, deposit = ?, description = ?, accommodation = ?, vacant = ?, user_id = ?  WHERE id = ?');
-				$stmt->execute(array(
-					$fullname,
-					$email,
-					$mobile,
-					$alternat_mobile,
-					$plot_number,
-					$rooms,
-				 	$country,
-					$state,
-					$city,
-					$address,
-					$landmark,
-					$rent,
-					$sale,
-					$deposit,
-					$description,
-					$accommodation,
-					$vacant,
-					$user_id,
-					$id
-				));
+			$current_image = $_POST['current_image']; // Get current image filename
 
-				// Edit 1: Set session message and redirect to list.php
-				$_SESSION['update_success_message'] = 'Update successful. Thank you';
-				header('Location: list.php'); // New redirect
-				exit;
-			}catch(PDOException $e) {
-				// Consider setting an error message in session or displaying it differently
-				$errMsg = "Database Error: " . $e->getMessage(); // Store error for potential display
+			// Image Upload Handling
+			$image_filename = $current_image; // Default to current image
+			$upload_dir = '../uploads/';
+			
+			if (isset($_FILES['image']) && $_FILES['image']['error'] == UPLOAD_ERR_OK) {
+				$file_tmp_path = $_FILES['image']['tmp_name'];
+				$file_name = $_FILES['image']['name'];
+				$file_size = $_FILES['image']['size'];
+				$file_type = $_FILES['image']['type'];
+				$file_name_parts = explode('.', $file_name);
+				$file_ext = strtolower(end($file_name_parts));
+
+				$allowed_ext = ['jpg', 'jpeg', 'png', 'gif'];
+
+				if (in_array($file_ext, $allowed_ext)) {
+					if ($file_size < 5000000) { // Max 5MB
+						// Generate unique filename
+						$new_filename = uniqid('img_', true) . '.' . $file_ext;
+						$dest_path = $upload_dir . $new_filename;
+
+						if (move_uploaded_file($file_tmp_path, $dest_path)) {
+							$image_filename = $new_filename; // Update filename for DB
+
+							// Delete old image if it exists and is different
+							if (!empty($current_image) && $current_image != $image_filename && file_exists($upload_dir . $current_image)) {
+								@unlink($upload_dir . $current_image); // Use @ to suppress errors if file not found
+							}
+						} else {
+							$errMsg = 'Error moving uploaded file.';
+						}
+					} else {
+						$errMsg = 'File is too large. Maximum size is 5MB.';
+					}
+				} else {
+					$errMsg = 'Invalid file type. Only JPG, JPEG, PNG, GIF allowed.';
+				}
+			} elseif (isset($_FILES['image']) && $_FILES['image']['error'] != UPLOAD_ERR_NO_FILE) {
+				// Handle other upload errors
+				$errMsg = 'File upload error: ' . $_FILES['image']['error'];
 			}
+
+			// Proceed with DB update only if no upload error occurred
+			if (empty($errMsg)) {
+				try {
+					// Format the image filename into a JSON array string
+					$image_json = null;
+					if (!empty($image_filename)) {
+						// Construct the relative path for the JSON string
+						// Note: $upload_dir already has a trailing slash if needed, but we prepend 'uploads/' for consistency
+						$image_path_for_json = 'uploads/' . $image_filename;
+						$image_json = json_encode([$image_path_for_json]);
+					}
+
+					// Update the SQL query to include the image column (now storing JSON)
+					$stmt = $connect->prepare('UPDATE room_rental_registrations SET fullname = ?,  email = ?, mobile = ?, alternat_mobile = ?, plot_number = ?, rooms = ?, country = ?, state = ?, city = ?, address = ?, landmark = ?, rent = ?, sale=?, deposit = ?, description = ?, accommodation = ?, vacant = ?, user_id = ?, image = ? WHERE id = ?');
+					$stmt->execute(array(
+						$fullname,
+						$email,
+						$mobile,
+						$alternat_mobile,
+						$plot_number,
+						$rooms,
+					 	$country,
+						$state,
+						$city,
+						$address,
+						$landmark,
+						$rent,
+						$sale,
+						$deposit,
+						$description,
+						$accommodation,
+						$vacant,
+						$user_id,
+						$image_json, // Bind the JSON formatted image string
+						$id
+					));
+
+					// Edit 1: Set session message and redirect to list.php
+					$_SESSION['update_success_message'] = 'Update successful. Thank you';
+					header('Location: list.php'); // New redirect
+					exit;
+				}catch(PDOException $e) {
+					// Consider setting an error message in session or displaying it differently
+					$errMsg = "Database Error: " . $e->getMessage(); // Store error for potential display
+				}
+			} // End if(empty($errMsg))
 	}
 
 

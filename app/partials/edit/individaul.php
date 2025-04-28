@@ -7,7 +7,7 @@
 			}
 		?>
   		<h2 class="text-center">Register Room</h2>
-  		<form action="" method="POST">
+  		<form action="" method="POST" enctype="multipart/form-data">
 		  	 <div class="row">
 		  	 	<div class="col-md-4">
 			  	  <div class="form-group">
@@ -145,14 +145,34 @@
 			    <input type="other" class="form-control" id="other" placeholder="Other" name="other" value="<?php echo $data['other']?$data['other']:''; ?>" required>
 			  </div>
 			  </div>
-				<!-- <div class="col-md-4">
+			  <div class="col-md-4">
 			  <div class="form-group">
-			    <label for="description">Image</label>
-			    <input type="file" class="form-control">
+					<label for="image">Property Image (Optional: Upload to replace)</label>
+					<input type="file" class="form-control-file" id="image" name="image" accept="image/*">
+					<?php 
+						// Define the uploads directory relative to the root
+						$uploads_dir = '../uploads/';
+						if (!empty($data['image'])):
+							$image_filename = htmlspecialchars($data['image']);
+							$image_path = $uploads_dir . $image_filename;
+							// Check if the file exists before displaying
+							if (file_exists($image_path)):
+					?>
+						<p class="mt-2 mb-0">Current Image:</p>
+						<img src="<?php echo $image_path; ?>" alt="Current Property Image" style="max-width: 100px; max-height: 100px; border: 1px solid #ddd; padding: 2px;">
+						<input type="hidden" name="current_image" value="<?php echo $image_filename; ?>">
+					<?php else: ?>
+						<p class="mt-2 mb-0 text-warning">Current image file (<?php echo $image_filename; ?>) not found.</p>
+						<input type="hidden" name="current_image" value="<?php echo $image_filename; // Keep track even if file missing ?>">
+					<?php endif; ?>
+					<?php else: ?>
+						<p class="mt-2 mb-0 text-muted">No current image.</p>
+						<input type="hidden" name="current_image" value="">
+					<?php endif; ?>
+				</div>
 			  </div>
-			  </div> -->
 			  </div>			
-			  <button type="submit" class="btn btn-primary" name='register_individuals' value="register_individuals">Submit</button>
+			  <button type="submit" class="btn btn-primary" name='register_individuals' value="register_individuals">Update Property</button>
 			</form>	
 			</div>			
   	</div>

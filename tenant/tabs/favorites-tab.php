@@ -72,7 +72,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                                 <h3 class="yt-title"><?php echo sanitizeOutput($property['fullname']); ?></h3>
 
                                 <!-- Price info (like channel name) -->
-                                <h4 class="yt-price">₹<?php echo number_format((int)$property['rent']); ?>/month</h4>
+                                <h4 class="yt-price">₱<?php echo number_format((int)$property['rent']); ?>/month</h4>
 
                                 <!-- Meta info (like views and timestamp) -->
                                 <div class="yt-meta">

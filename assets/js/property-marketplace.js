@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // --- Generate Details HTML ---
             const detailsHTML = `
                 <h3>${propertyName}</h3>
-                <h4 class="h4 mb-3">₹${Number(propertyRent).toLocaleString()}/month</h4>
+                <h4 class="h4 mb-3">₱${Number(propertyRent).toLocaleString()}/month</h4>
                 <div class="detail-item mb-2">
                      <span class="badge badge-${propertyVacant ? 'success' : 'danger'}">
                         ${propertyVacant ? 'Available' : 'Occupied'}
