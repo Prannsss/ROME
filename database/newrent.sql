@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 24, 2025 at 06:14 AM
+-- Generation Time: Apr 28, 2025 at 10:18 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -44,9 +44,9 @@ CREATE TABLE `bills` (
 --
 
 INSERT INTO `bills` (`id`, `user_id`, `room_id`, `amount`, `description`, `due_date`, `status`, `created_at`, `updated_at`) VALUES
-(1, 2, 13, 3500.00, 'Monthly Rent - January 2023', '2023-01-05', 'paid', '2025-04-14 08:14:23', '2025-04-14 08:14:23'),
-(2, 2, 13, 3500.00, 'Monthly Rent - February 2023', '2023-02-05', 'paid', '2025-04-14 08:14:23', '2025-04-14 08:14:23'),
-(3, 2, 13, 3500.00, 'Monthly Rent - March 2023', '2023-03-05', 'unpaid', '2025-04-14 08:14:23', '2025-04-14 08:14:23');
+(1, 2, 13, 3500.00, 'Monthly Rent - January 2023', '2023-01-05', 'paid', '2025-04-14 00:14:23', '2025-04-14 00:14:23'),
+(2, 2, 13, 3500.00, 'Monthly Rent - February 2023', '2023-02-05', 'paid', '2025-04-14 00:14:23', '2025-04-14 00:14:23'),
+(3, 2, 13, 3500.00, 'Monthly Rent - March 2023', '2023-03-05', 'unpaid', '2025-04-14 00:14:23', '2025-04-14 00:14:23');
 
 -- --------------------------------------------------------
 
@@ -218,7 +218,7 @@ CREATE TABLE `room_rental_registrations` (
   `address` varchar(191) NOT NULL,
   `accommodation` varchar(191) NOT NULL,
   `description` varchar(191) NOT NULL,
-  `image` varchar(191) DEFAULT NULL,
+  `image` longtext DEFAULT NULL,
   `open_for_sharing` varchar(191) DEFAULT NULL,
   `other` varchar(191) DEFAULT NULL,
   `vacant` int(1) NOT NULL DEFAULT 1,
@@ -232,10 +232,16 @@ CREATE TABLE `room_rental_registrations` (
 --
 
 INSERT INTO `room_rental_registrations` (`id`, `fullname`, `mobile`, `alternat_mobile`, `email`, `country`, `state`, `city`, `landmark`, `rent`, `sale`, `deposit`, `plot_number`, `rooms`, `address`, `accommodation`, `description`, `image`, `open_for_sharing`, `other`, `vacant`, `created_at`, `updated_at`, `user_id`) VALUES
-(13, 'Ashish Gaikwazini', '2345676568', '2345676568', 'admin@admin.com', 'india', 'Maharashtra', 'Jalgaon', 'near ramanand police station', '1100', '20000', '5000', '77 nh', '2bhk', 'kolhe nagar, jalgaon', '4', 'nice house', 'uploads/Jalgao1.jpg', NULL, 'zx', 1, '2022-05-05 12:21:43', '2022-05-05 12:21:43', NULL),
-(16, 'Allain Ralph Legaspi', '5555555555', '666666666', 'allain@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Near Brngy. Hall', '3500', '4000000000', '1500', '77', '20', 'Guadalupe, Cebu City', '5', 'hahahhaha', 'uploads/beachapt.jpg', NULL, NULL, 1, '2025-04-21 04:20:47', '2025-04-21 04:20:47', NULL),
-(17, 'Sir Rocky', '9999999999', '666666666', 'rocky@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Near IT', '5000', '500000000', '3000', '11', '20', 'Cebu Cuty', '5', 'hhhhh', 'uploads/modernapt.jpg', NULL, NULL, 1, '2025-04-21 05:55:07', '2025-04-21 05:55:07', NULL),
-(18, 'Hanz Magbal', '0969696969', '09999999999', 'hanz@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Near Shell', '2500', '', '1500', '20', '20', 'Lahug, Cebu City ', 'Wi-Fi, CR, Balcony', 'hahahha', '[\"uploads\\/6808ab38664f2_luxuryapt.jpg\",\"uploads\\/6808ab3866c07_homeapt.jpg\",\"uploads\\/6808ab3866de4_header-bg.jpg.jpg\",\"uploads\\/6808ab3866f81_studioapt.jpg\"]', NULL, NULL, 1, '2025-04-23 08:56:24', '2025-04-23 08:56:24', NULL);
+(13, 'Ashish Gaikwazini', '2345676568', '2345676568', 'admin@admin.com', 'india', 'Maharashtra', 'Jalgaon', 'near ramanand police station', '1100', '20000', '5000', '77 nh', '2bhk', 'kolhe nagar, jalgaon', '4', 'nice house', 'uploads/img_680f0422e100e.jpg', NULL, 'zx', 1, '2022-05-05 12:21:43', '2022-05-05 12:21:43', NULL),
+(16, 'Allain Ralph Legaspi', '5555555555', '666666666', 'allain@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Near Brngy. Hall', '3500', '4000000000', '1500', '77', '20', 'Guadalupe, Cebu City', '5', 'hahahhaha', 'uploads/img_680f05e07f11a.jpg', NULL, NULL, 1, '2025-04-21 04:20:47', '2025-04-21 04:20:47', NULL),
+(17, 'Sir Rockie', '9999999999', '666666666', 'rocky@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Near IT', '5000', '500000000', '3000', '11', '20', 'Cebu Cuty', '5', 'hhhhh', 'uploads/modernapt.jpg', NULL, NULL, 1, '2025-04-21 05:55:07', '2025-04-21 05:55:07', NULL),
+(19, 'kim', '00000000000', '98888787', 'kim@rome.com', 'Philippines', 'Cebu', 'Cebu City', 'IT park', '5000', '500000000', '3000', '1', '20', 'Cebu CIty', 'Wi-Fi, CR, Balcony', 'ffagagag', '[\"uploads\\/680c54d1e9eca_luxuryapt.jpg\"]', NULL, NULL, 1, '2025-04-26 03:36:49', '2025-04-26 03:36:49', NULL),
+(20, 'Hanz Magbal', '09227777777', '09339999999', 'hanz@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Shell', '6000', '4000000000', '3000', '21', '10', 'Cebu City', 'Wi-Fi, CR, Balcony', 'adadadad', '[\"uploads\\/680f0a9032ea9_luxuryapt.jpg\",\"uploads\\/680f0a90339eb_homeapt.jpg\"]', NULL, NULL, 1, '2025-04-28 04:56:48', '2025-04-28 04:56:48', NULL),
+(21, 'Ayham Kalsam ', '096546215644', '0944895654895', 'ayham@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Alvida Tower', '3999', '100000000', '1500', '8', '5', 'Cebu City', 'Wi-Fi, CR, Balcony', 'adadaadd', '[\"uploads\\/680f0a9032ea9_luxuryapt.jpg\",\"uploads\\/680f0a90339eb_homeapt.jpg\"]', NULL, NULL, 1, '2025-04-28 05:05:00', '2025-04-28 05:05:00', NULL),
+(22, 'Kenshee', '097845168455', '09845166566', 'knshee@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'IT PARK', '4999', '300000000', '2599', '9', '10', 'Cebu City', 'Wi-Fi, CR, Balcony', 'jajajja', '[\"uploads\\/680f0a9032ea9_luxuryapt.jpg\",\"uploads\\/680f0a90339eb_homeapt.jpg\"]', NULL, NULL, 1, '2025-04-28 05:13:33', '2025-04-28 05:13:33', NULL),
+(23, 'Bench', '095421658842', '095665819235', 'bnch@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'IT PARK', '6999', '4000000000', '3000', '8', '10', 'Cebu City', 'Wi-Fi, CR, Balcony', 'tralaleo tralala', '[\"uploads\\/680f0a9032ea9_luxuryapt.jpg\",\"uploads\\/680f0a90339eb_homeapt.jpg\"]', NULL, NULL, 1, '2025-04-28 05:20:07', '2025-04-28 05:20:07', NULL),
+(24, 'Davis', '094545545665', '0955442255', 'dvs@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Bus station', '2999', '100000000', '1500', '1', '10', 'Apas', 'Wi-Fi, CR, Balcony', 'lllll', '[\"uploads\\/680f128ae3a0d_homeapt.jpg\",\"uploads\\/680f0a9032ea9_luxuryapt.jpg\"]', NULL, NULL, 1, '2025-04-28 05:30:50', '2025-04-28 05:30:50', NULL),
+(25, 'Kurt', '094512362514', '092514362514', 'krt@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Cebu', '3500', '4000000000', '1500', '2', '20', 'Cebu', 'Wi-Fi, CR, Balcony', 'er', '[\"uploads\\/680f14217b770_kag.png\",\"uploads\\/680f14217b9d4_kag1.jpg\"]', NULL, NULL, 1, '2025-04-28 05:37:37', '2025-04-28 05:37:37', NULL);
 
 -- --------------------------------------------------------
 
@@ -294,7 +300,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `fullname`, `mobile`, `username`, `email`, `address`, `image`, `password`, `created_at`, `updated_at`, `role`, `status`) VALUES
-(11, 'Test Tenant', '9876543211', 'tenant', 'tenant@rome.com', 'Cebu City', '/ROME/uploads/profile_pictures/user_11_1745399223.png', '0192023a7bbd73250516f069df18b500', '2025-04-14 08:14:23', '2025-04-14 08:14:23', 'tenant', 1),
+(11, 'Testing Tenant', '9876543211', 'tenant', 'tenant@rome.com', 'Cebu City', '/ROME/uploads/profile_pictures/user_11_1745637368.jpg', '0192023a7bbd73250516f069df18b500', '2025-04-14 08:14:23', '2025-04-14 08:14:23', 'tenant', 1),
 (10, 'Administrator', '9876543210', 'admin', 'admin@rome.com', NULL, NULL, '0192023a7bbd73250516f069df18b500', '2025-04-14 07:36:27', '2025-04-14 07:36:27', 'admin', 1);
 
 -- --------------------------------------------------------
@@ -327,12 +333,6 @@ INSERT INTO `visitor_logs` (`id`, `user_id`, `room_id`, `visitor_name`, `visitor
 --
 -- Indexes for dumped tables
 --
-
---
--- Indexes for table `bills`
---
-ALTER TABLE `bills`
-  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `current_rentals`
@@ -420,12 +420,6 @@ ALTER TABLE `visitor_logs`
 --
 
 --
--- AUTO_INCREMENT for table `bills`
---
-ALTER TABLE `bills`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
 -- AUTO_INCREMENT for table `current_rentals`
 --
 ALTER TABLE `current_rentals`
@@ -471,7 +465,7 @@ ALTER TABLE `reservations`
 -- AUTO_INCREMENT for table `room_rental_registrations`
 --
 ALTER TABLE `room_rental_registrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `saved_rooms`

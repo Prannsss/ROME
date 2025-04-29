@@ -3,6 +3,9 @@
 require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php');
 ?>
 
+<!-- Add before closing </head> tag -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
 <!-- Marketplace Content -->
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
     <h1 class="h3 mb-0 text-gray-800">Marketplace</h1>
@@ -246,8 +249,20 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                         </div>
                         <div class="property-description"></div>
                         <div class="action-buttons">
-                            <button class="btn btn-schedule">Schedule Viewing</button>
-                            <button class="btn btn-reserve">Reserve</button>
+                            <?php if (isset($_SESSION['user_id'])): ?>
+                                <div class="ms-auto">
+                                    <button class="btn btn-primary me-2 reserve-button" data-property-id="${propertyId}" data-property-name="${propertyName}">
+                                        <i class="fas fa-calendar-check"></i> Reserve
+                                    </button>
+                                    <button class="btn btn-outline-secondary add-to-favorites">
+                                        <i class="fas fa-heart" data-id="${propertyId}"></i>
+                                    </button>
+                                </div>
+                            <?php else: ?>
+                                <a href="../auth/login.php" class="btn btn-secondary">
+                                    <i class="fas fa-sign-in-alt"></i> Login to Reserve
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -261,6 +276,9 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
 
 <!-- Link to external JavaScript file -->
 <script src="/ROME/assets/js/property-marketplace.js"></script>
+
+<!-- Add before closing </body> tag -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <?php
 // Include common footer

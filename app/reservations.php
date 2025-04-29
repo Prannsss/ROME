@@ -236,6 +236,14 @@ $page_title = "Reservations Management";
                                                 <button class="btn btn-sm btn-danger cancel-reservation" data-id="<?php echo $reservation['id']; ?>">
                                                     <i class="fas fa-times"></i>
                                                 </button>
+                                                <button class="btn btn-sm btn-success approve-reservation"
+                                                        data-id="<?php echo $reservation['id']; ?>">
+                                                    <i class="fas fa-check"></i> Approve
+                                                </button>
+                                                <button class="btn btn-sm btn-danger reject-reservation"
+                                                        data-id="<?php echo $reservation['id']; ?>">
+                                                    <i class="fas fa-times"></i> Reject
+                                                </button>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
@@ -317,6 +325,34 @@ $page_title = "Reservations Management";
                         }
                     });
                 }
+            });
+
+            $('.approve-reservation').click(function() {
+                const id = $(this).data('id');
+                $.post('../api/update_reservation.php', {
+                    id: id,
+                    status: 'approved'
+                }, function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                });
+            });
+
+            $('.reject-reservation').click(function() {
+                const id = $(this).data('id');
+                $.post('../api/update_reservation.php', {
+                    id: id,
+                    status: 'rejected'
+                }, function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                });
             });
         });
     </script>

@@ -49,7 +49,7 @@ function showToast(message, type = 'info', duration = 3000) {
         toastContainer.id = 'toast-container';
         toastContainer.className = 'toast-container';
         document.body.appendChild(toastContainer);
-        
+
         // Add toast container styles if not already in CSS
         if (!document.getElementById('toast-styles')) {
             const style = document.createElement('style');
@@ -86,15 +86,15 @@ function showToast(message, type = 'info', duration = 3000) {
             document.head.appendChild(style);
         }
     }
-    
+
     // Create toast element
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
-    
+
     // Add to container
     toastContainer.appendChild(toast);
-    
+
     // Remove after duration
     setTimeout(() => {
         toast.remove();

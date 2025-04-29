@@ -7,12 +7,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof $().tooltip === 'function') {
         $('[data-toggle="tooltip"]').tooltip();
     }
-    
+
     // Initialize popovers
     if (typeof $().popover === 'function') {
         $('[data-toggle="popover"]').popover();
     }
-    
+
     // Add error handling for all images
     document.querySelectorAll('img').forEach(img => {
         if (!img.hasAttribute('data-error-handled')) {
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
-    
+
     // Add confirmation for delete actions
     document.querySelectorAll('.confirm-action').forEach(button => {
         button.addEventListener('click', function(e) {
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     // Handle form validation
     document.querySelectorAll('form.needs-validation').forEach(form => {
         form.addEventListener('submit', function(event) {
@@ -50,22 +50,22 @@ document.addEventListener('DOMContentLoaded', function() {
             form.classList.add('was-validated');
         }, false);
     });
-    
+
     // Add AJAX form submission capability
     document.querySelectorAll('form.ajax-form').forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             const formData = new FormData(this);
             const submitBtn = form.querySelector('[type="submit"]');
             const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
-            
+
             // Disable submit button and show loading
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
             }
-            
+
             // Send AJAX request
             fetch(form.action, {
                 method: form.method,
@@ -79,19 +79,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     alert(data.message);
                 }
-                
+
                 // Handle success
                 if (data.status === 'success') {
                     // Reset form if needed
                     if (form.dataset.resetOnSuccess === 'true') {
                         form.reset();
                     }
-                    
+
                     // Redirect if needed
                     if (data.redirect) {
                         window.location.href = data.redirect;
                     }
-                    
+
                     // Refresh page if needed
                     if (form.dataset.refreshOnSuccess === 'true') {
                         window.location.reload();
