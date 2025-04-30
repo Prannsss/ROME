@@ -4,12 +4,13 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips
-    if (typeof $().tooltip === 'function') {
+    // Ensure jQuery is loaded before trying to use its functions
+    if (typeof $ !== 'undefined' && typeof $().tooltip === 'function') {
         $('[data-toggle="tooltip"]').tooltip();
     }
 
     // Initialize popovers
-    if (typeof $().popover === 'function') {
+    if (typeof $ !== 'undefined' && typeof $().popover === 'function') {
         $('[data-toggle="popover"]').popover();
     }
 

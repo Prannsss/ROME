@@ -47,8 +47,13 @@ $page_title = "Reservations Management";
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         <?php include('../assets/css/tabs.css'); ?>
+        .calendar-container {
+            max-height: 600px; /* Adjust this value as needed */
+            overflow-y: auto; /* Add scroll if content exceeds max-height */
+        }
     </style>
 </head>
 <body>
@@ -226,23 +231,12 @@ $page_title = "Reservations Management";
                                                 </span>
                                             </td>
                                             <td>
-                                                <button class="btn btn-sm btn-info view-reservation" data-id="<?php echo $reservation['id']; ?>">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
                                                 <?php if ($reservation['status'] == 'pending'): ?>
                                                 <button class="btn btn-sm btn-success confirm-reservation" data-id="<?php echo $reservation['id']; ?>">
                                                     <i class="fas fa-check"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-danger cancel-reservation" data-id="<?php echo $reservation['id']; ?>">
                                                     <i class="fas fa-times"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-success approve-reservation"
-                                                        data-id="<?php echo $reservation['id']; ?>">
-                                                    <i class="fas fa-check"></i> Approve
-                                                </button>
-                                                <button class="btn btn-sm btn-danger reject-reservation"
-                                                        data-id="<?php echo $reservation['id']; ?>">
-                                                    <i class="fas fa-times"></i> Reject
                                                 </button>
                                                 <?php endif; ?>
                                             </td>
@@ -294,66 +288,58 @@ $page_title = "Reservations Management";
             });
             calendar.render();
 
-            // Handle reservation actions
+            // Handle reservation actions with SweetAlert
             $('.confirm-reservation').click(function() {
                 const id = $(this).data('id');
-                if (confirm('Are you sure you want to confirm this reservation?')) {
-                    $.post('../api/update_reservation.php', {
-                        id: id,
-                        status: 'confirmed'
-                    }, function(response) {
-                        if (response.success) {
-                            location.reload();
-                        } else {
-                            alert('Error: ' + response.message);
-                        }
-                    });
-                }
+                Swal.fire({
+                    title: 'Approve this reservation?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, approve it!',
+                    cancelButtonText: 'No, cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.post('../api/update_reservation.php', {
+                            id: id,
+                            status: 'approved' // Changed from 'confirmed' to 'approved'
+                        }, function(response) {
+                            if (response.success) {
+                                Swal.fire('Approved!', 'Reservation has been approved.', 'success').then(() => location.reload());
+                            } else {
+                                Swal.fire('Error!', 'Error: ' + response.message, 'error');
+                            }
+                        }, 'json'); // Ensure response is treated as JSON
+                    }
+                });
             });
 
             $('.cancel-reservation').click(function() {
                 const id = $(this).data('id');
-                if (confirm('Are you sure you want to cancel this reservation?')) {
-                    $.post('../api/update_reservation.php', {
-                        id: id,
-                        status: 'cancelled'
-                    }, function(response) {
-                        if (response.success) {
-                            location.reload();
-                        } else {
-                            alert('Error: ' + response.message);
-                        }
-                    });
-                }
-            });
-
-            $('.approve-reservation').click(function() {
-                const id = $(this).data('id');
-                $.post('../api/update_reservation.php', {
-                    id: id,
-                    status: 'approved'
-                }, function(response) {
-                    if (response.success) {
-                        location.reload();
-                    } else {
-                        alert('Error: ' + response.message);
+                Swal.fire({
+                    title: 'Reject this reservation?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, reject it!',
+                    cancelButtonText: 'No, cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.post('../api/update_reservation.php', {
+                            id: id,
+                            status: 'rejected' // Changed from 'cancelled' to 'rejected'
+                        }, function(response) {
+                            if (response.success) {
+                                Swal.fire('Rejected!', 'Reservation has been rejected.', 'success').then(() => location.reload());
+                            } else {
+                                Swal.fire('Error!', 'Error: ' + response.message, 'error');
+                            }
+                        }, 'json'); // Ensure response is treated as JSON
                     }
                 });
             });
 
-            $('.reject-reservation').click(function() {
-                const id = $(this).data('id');
-                $.post('../api/update_reservation.php', {
-                    id: id,
-                    status: 'rejected'
-                }, function(response) {
-                    if (response.success) {
-                        location.reload();
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
-                });
-            });
+            // Remove the old approve/reject handlers as they are now handled by confirm/cancel with SweetAlert
+            // $('.approve-reservation').click(...);
+            // $('.reject-reservation').click(...);
         });
     </script>
 

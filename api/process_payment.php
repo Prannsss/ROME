@@ -15,44 +15,68 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $user_id = $_SESSION['user_id'];
-$property_id = isset($_POST['property_id']) ? (int)$_POST['property_id'] : 0;
-$amount = isset($_POST['amount']) ? (float)$_POST['amount'] : 0;
+// Expect bill_id instead of property_id for bill payments
+$bill_id = isset($_POST['bill_id']) ? (int)$_POST['bill_id'] : 0;
+$amount = isset($_POST['amount']) ? (float)$_POST['amount'] : 0; // Amount should come from POST
 $payment_method = isset($_POST['payment_method']) ? $_POST['payment_method'] : '';
 
+if ($bill_id <= 0 || $amount <= 0 || empty($payment_method)) {
+    echo json_encode(['success' => false, 'message' => 'Missing or invalid payment details (bill_id, amount, payment_method).']);
+    exit;
+}
+
 try {
-    $db = getDbConnection();
+    // Use the global $connect variable from config.php
+    global $connect;
 
     // Start transaction
-    $db->beginTransaction();
+    $connect->beginTransaction();
 
-    // Record payment
-    $stmt = $db->prepare("
-        INSERT INTO payments (user_id, room_id, amount, payment_date, payment_method, status)
-        VALUES (?, ?, ?, CURDATE(), ?, 'completed')
+    // 1. Fetch bill details (including room_id and verify amount/status)
+    $stmt_fetch_bill = $connect->prepare("SELECT room_id, amount, status FROM bills WHERE id = ? AND user_id = ?");
+    $stmt_fetch_bill->execute([$bill_id, $user_id]);
+    $bill = $stmt_fetch_bill->fetch(PDO::FETCH_ASSOC);
+
+    if (!$bill) {
+        throw new Exception('Bill not found or access denied.');
+    }
+
+    if ($bill['status'] === 'paid') {
+        throw new Exception('This bill has already been paid.');
+    }
+
+    // Optional: Verify the submitted amount matches the bill amount
+    if (abs($bill['amount'] - $amount) > 0.01) { // Allow for small floating point differences
+        // Decide how to handle amount mismatch - reject or log?
+        // For now, let's use the amount from the bill record for safety
+        $amount = (float)$bill['amount'];
+        // Or throw an exception: throw new Exception('Payment amount mismatch.');
+    }
+
+    $room_id = $bill['room_id'];
+
+    // 2. Record payment in the payments table
+    // Note: payments table uses room_id, not bill_id directly
+    $stmt_payment = $connect->prepare("\n        INSERT INTO payments (user_id, room_id, amount, payment_date, payment_method, status) -- Removed bill_id
+        VALUES (?, ?, ?, CURDATE(), ?, 'completed') -- Removed bill_id placeholder
     ");
-    $stmt->execute([$user_id, $property_id, $amount, $payment_method]);
+    // Removed bill_id from params
+    $stmt_payment->execute([$user_id, $room_id, $amount, $payment_method]);
 
-    // Update reservation status
-    $stmt = $db->prepare("
-        UPDATE reservations
-        SET status = 'confirmed'
-        WHERE user_id = ? AND room_id = ? AND status = 'approved'
-    ");
-    $stmt->execute([$user_id, $property_id]);
+    // 3. Update the specific bill status to 'paid'
+    $stmt_update_bill = $connect->prepare("\n        UPDATE bills\n        SET status = 'paid', updated_at = NOW()\n        WHERE id = ? AND user_id = ?\n    ");
+    $stmt_update_bill->execute([$bill_id, $user_id]);
 
-    // Add to current rentals
-    $stmt = $db->prepare("
-        INSERT INTO current_rentals (user_id, room_id, room_name, room_type, start_date, end_date, monthly_rent)
-        SELECT ?, ?, fullname, rooms, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR), rent
-        FROM room_rental_registrations WHERE id = ?
-    ");
-    $stmt->execute([$user_id, $property_id, $property_id]);
-
-    $db->commit();
-    echo json_encode(['success' => true]);
+    // Commit transaction
+    $connect->commit();
+    echo json_encode(['success' => true, 'message' => 'Payment processed successfully.']);
 
 } catch (Exception $e) {
-    $db->rollBack();
-    error_log($e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'An error occurred processing payment']);
+    // Rollback transaction on error
+    if ($connect->inTransaction()) {
+        $connect->rollBack();
+    }
+    error_log('Payment Processing Error: ' . $e->getMessage()); // Log the error
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]); // Send specific error back
 }
+?>

@@ -34,7 +34,7 @@
                             <tr>
                                 <td><input type="checkbox" class="bill-checkbox" value="<?php echo $bill['id']; ?>"></td>
                                 <td><?php echo $bill['description']; ?></td>
-                                <td>$<?php echo number_format($bill['amount'], 2); ?></td>
+                                <td>₱<?php echo number_format($bill['amount'], 2); ?></td>
                                 <td><?php echo date('M d, Y', strtotime($bill['due_date'])); ?></td>
                                 <td>
                                     <?php if (strtotime($bill['due_date']) < time()): ?>
@@ -44,12 +44,16 @@
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-primary" onclick="payBill(<?php echo $bill['id']; ?>)">
-                                        <i class="fas fa-credit-card"></i> Pay
-                                    </button>
-                                    <button class="btn btn-sm btn-info" onclick="viewBill(<?php echo $bill['id']; ?>)">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
+                                    <?php if (isset($bill['id']) && is_numeric($bill['id']) && $bill['id'] > 0): ?>
+                                        <button class="btn btn-sm btn-primary" onclick="window.location.href='payment.php?bill_id=<?php echo $bill['id']; ?>'">
+                                            <i class="fas fa-credit-card"></i> Pay
+                                        </button>
+                                        <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#invoiceModal" onclick="viewBill(<?php echo $bill['id']; ?>)">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    <?php else: ?>
+                                        <span class="text-muted small">Invalid Bill Data</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -64,7 +68,55 @@
                 <?php endif; ?>
             </div>
         </div>
-        
+
+<!-- Invoice Modal -->
+<div class="modal fade" id="invoiceModal" tabindex="-1" role="dialog" aria-labelledby="invoiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="invoiceModalLabel">Invoice Details</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="invoiceModalBody">
+                <!-- Invoice content will be loaded here -->
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="modalPayButton">Pay Now</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewBill(billId) {
+    // Show loading state
+    document.getElementById('invoiceModalBody').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div></div>';
+    $('#invoiceModal').modal('show');
+    document.getElementById('modalPayButton').onclick = function() {
+        window.location.href = 'payment.php?bill_id=' + billId;
+    };
+
+    // Fetch invoice details using AJAX (replace with your actual endpoint)
+    fetch('../get_invoice_details.php?bill_id=' + billId)
+        .then(response => response.text()) // Or response.json() if your endpoint returns JSON
+        .then(data => {
+            document.getElementById('invoiceModalBody').innerHTML = data; // Populate modal body
+        })
+        .catch(error => {
+            console.error('Error fetching invoice:', error);
+            document.getElementById('invoiceModalBody').innerHTML = '<p class="text-danger">Error loading invoice details.</p>';
+        });
+}
+</script>
+
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Payment History</h6>
@@ -86,7 +138,7 @@
                             <?php foreach($payment_history as $payment): ?>
                             <tr>
                                 <td><?php echo $payment['description']; ?></td>
-                                <td>$<?php echo number_format($payment['amount'], 2); ?></td>
+                                <td>₱<?php echo number_format($payment['amount'], 2); ?></td>
                                 <td><?php echo date('M d, Y', strtotime($payment['payment_date'])); ?></td>
                                 <td><?php echo $payment['payment_method']; ?></td>
                                 <td>
@@ -157,7 +209,7 @@
                                 <div><?php echo $bill['description']; ?></div>
                                 <small class="text-muted">Due: <?php echo date('M d, Y', strtotime($bill['due_date'])); ?></small>
                             </div>
-                            <span class="badge badge-primary badge-pill">$<?php echo number_format($bill['amount'], 2); ?></span>
+                            <span class="badge badge-primary badge-pill">₱<?php echo number_format($bill['amount'], 2); ?></span>
                         </li>
                         <?php endforeach; ?>
                     </ul>

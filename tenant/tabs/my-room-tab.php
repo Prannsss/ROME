@@ -23,7 +23,7 @@
                         <p><i class="fas fa-calendar-alt mr-2 text-primary"></i> <strong>Lease Period:</strong><br>
                            <?php echo date('M d, Y', strtotime($current_rental['start_date'])); ?> - 
                            <?php echo date('M d, Y', strtotime($current_rental['end_date'])); ?></p>
-                        <p><i class="fas fa-dollar-sign mr-2 text-primary"></i> <strong>Monthly Rent:</strong> 
+                        <p><i class="fas fa-dollar-sign mr-2 text-primary"></i> <strong>Monthly Rent:</strong>
                            $<?php echo number_format($current_rental['monthly_rent'], 2); ?></p>
                     </div>
                 </div>

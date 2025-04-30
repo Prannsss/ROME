@@ -53,13 +53,20 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                         throw new Exception("Database connection failed");
                     }
 
-                    // Use parameterized query for security
+                    // Get current user ID, default to 0 if not logged in
+                    $current_user_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+
+                    // Use parameterized query for security, joining reservations to get status
                     $stmt = $db_connect->prepare("
-                        SELECT id, fullname, rent, sale, rooms, address, description, image, vacant
-                        FROM room_rental_registrations
+                        SELECT
+                            p.id, p.fullname, p.rent, p.sale, p.rooms, p.address, p.description, p.image, p.vacant,
+                            r.status as reservation_status
+                        FROM room_rental_registrations p
+                        LEFT JOIN reservations r ON p.id = r.room_id AND r.user_id = :user_id AND r.status IN ('pending', 'approved', 'confirmed')
                         WHERE 1=1
-                        ORDER BY id DESC
+                        ORDER BY p.id DESC
                     ");
+                    $stmt->bindParam(':user_id', $current_user_id, PDO::PARAM_INT);
                     $stmt->execute();
                     $properties = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -153,6 +160,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                                         data-vacant="<?php echo $vacantStatus ? '1' : '0'; ?>"
                                         data-description="<?php echo htmlspecialchars($property['description'] ?? 'No description available.'); ?>"
                                         data-images='<?php echo $allImagesJson; ?>'
+                                        data-reservation-status="<?php echo htmlspecialchars($property['reservation_status'] ?? ''); ?>"
                                         data-toggle="modal"
                                         data-target="#propertyDetailsModal">
                                     View Details
@@ -271,11 +279,14 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
     </div>
 </div>
 
-<!-- Link to external CSS file -->
-<link rel="stylesheet" href="/ROME/assets/css/property-cards.css">
-
 <!-- Link to external JavaScript file -->
 <script src="/ROME/assets/js/property-marketplace.js"></script>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Link to external CSS file -->
+<link rel="stylesheet" href="/ROME/assets/css/property-cards.css">
 
 <!-- Add before closing </body> tag -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

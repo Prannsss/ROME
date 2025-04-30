@@ -127,9 +127,6 @@
             <li class="nav-item">
               <a class="nav-link js-scroll-trigger" href="#room-types">Rooms</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">Pricing</a>
-            </li>
             <?php 
               if(empty($_SESSION['username'])){
                 echo '<li class="nav-item">';
@@ -221,7 +218,6 @@
               <div class="card-body">
                 <h4 class="card-title">Economy</h4>
                 <p class="card-text">Comfortable and budget-friendly options for the cost-conscious renter.</p>
-                <a href="#" class="btn btn-primary">View Rooms</a>
               </div>
             </div>
           </div>
@@ -231,7 +227,6 @@
               <div class="card-body">
                 <h4 class="card-title">Mid-Range</h4>
                 <p class="card-text">The perfect balance of comfort and affordability with added amenities.</p>
-                <a href="#" class="btn btn-primary">View Rooms</a>
               </div>
             </div>
           </div>
@@ -241,7 +236,6 @@
               <div class="card-body">
                 <h4 class="card-title">Deluxe</h4>
                 <p class="card-text">Premium accommodations with top-tier amenities and spacious layouts.</p>
-                <a href="#" class="btn btn-primary">View Rooms</a>
               </div>
             </div>
           </div>

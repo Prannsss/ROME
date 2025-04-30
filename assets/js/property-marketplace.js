@@ -155,7 +155,116 @@ document.addEventListener('DOMContentLoaded', function() {
             $(`#${carouselId}`).carousel();
 
             // Initialize favorite button functionality within the modal
-            initFavoriteButtons();
+            initFavoriteButtons(modalDetailsContainer); // Pass container
+
+            // Add event listener for Rent Now button within the modal
+            const rentNowBtn = modalDetailsContainer.querySelector('#rentNowBtn');
+            if (rentNowBtn) {
+                rentNowBtn.addEventListener('click', function() {
+                    // Rent Now should likely trigger a payment flow or different confirmation
+                    // For now, let's show a distinct SweetAlert
+                    Swal.fire({
+                        title: 'Rent Now', // Correct title
+                        text: 'Proceed to payment for ' + propertyName + '?', // Example text
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonColor: '#28a745', // Green for confirm
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Yes, proceed!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Placeholder for payment initiation logic
+                            console.log('Proceeding to payment for property ID:', propertyId);
+                            // Example: window.location.href = `/ROME/payment?property_id=${propertyId}`;
+                            showToast('Redirecting to payment...', 'info');
+                        }
+                    });
+                });
+            }
+
+            // Add event listener for Reserve button within the modal
+            const reserveButton = modalDetailsContainer.querySelector('.reserve-button');
+            if (reserveButton) { // Check if button exists
+                reserveButton.addEventListener('click', function() {
+                    const propertyId = this.getAttribute('data-property-id');
+                    const propertyName = this.getAttribute('data-property-name');
+                    const currentStatus = this.getAttribute('data-reservation-status');
+
+                    if (currentStatus === 'approved') {
+                        // Redirect to payment page
+                        Swal.fire({
+                            title: 'Reservation Approved!',
+                            text: 'Your reservation for ' + propertyName + ' is approved. Proceed to payment?',
+                            icon: 'success',
+                            showCancelButton: true,
+                            confirmButtonColor: '#28a745',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: 'Yes, Pay Now!',
+                            cancelButtonText: 'Later'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = `/ROME/tenant/payment.php?property_id=${propertyId}`;
+                            }
+                        });
+                    } else if (currentStatus === 'pending') {
+                        // Existing cancel logic
+                        Swal.fire({
+                            title: 'Cancel Reservation',
+                            text: 'Are you sure you want to cancel your pending reservation for ' + propertyName + '?',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: 'Yes, cancel it!',
+                            cancelButtonText: 'No, keep it'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                cancelReservation(propertyId, this); // Pass the button element
+                            }
+                        });
+                    } else {
+                        // Existing reserve logic
+                        Swal.fire({
+                            title: 'Make Reservation',
+                            text: 'Would you like to reserve ' + propertyName + '?',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#007bff',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: 'Yes, reserve it!',
+                            cancelButtonText: 'Not now'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                makeReservation(propertyId, this); // Pass the button element
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Update button appearance based on status when modal opens
+            const reserveBtnElement = modalDetailsContainer.querySelector('.reserve-button');
+            if (reserveBtnElement) {
+                const status = reserveBtnElement.getAttribute('data-reservation-status');
+                reserveBtnElement.innerHTML = getReservationButtonText(status);
+                reserveBtnElement.classList.remove('btn-primary', 'btn-warning', 'btn-success'); // Clear existing status classes
+                const rentNowBtn = modalDetailsContainer.querySelector('#rentNowBtn');
+
+                if (status === 'pending') {
+                    reserveBtnElement.classList.add('btn-warning');
+                    if(rentNowBtn) rentNowBtn.style.display = 'block'; // Show Rent Now if pending
+                } else if (status === 'approved') {
+                    reserveBtnElement.classList.add('btn-success');
+                    if(rentNowBtn) rentNowBtn.style.display = 'none'; // Hide Rent Now if approved
+                } else {
+                    reserveBtnElement.classList.add('btn-primary');
+                    if(rentNowBtn) rentNowBtn.style.display = 'block'; // Show Rent Now if not reserved/approved
+                }
+                // No need to disable if approved, as it now leads to payment
+            }
+
+            // Show the modal
+            $(propertyDetailsModal).modal('show');
         });
     });
 
@@ -172,72 +281,164 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Initialize favorite buttons
-    function initFavoriteButtons() {
-        const favoriteButtons = document.querySelectorAll('.add-to-favorites');
+    // Initialize favorite buttons (consider passing a container)
+    function initFavoriteButtons(container = document) {
+        const favoriteButtons = container.querySelectorAll('.add-to-favorites');
 
         favoriteButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const propertyId = this.getAttribute('data-id');
+            // Check initial favorite status (requires backend data)
+            // For now, assume not favorited initially
+            const heartIcon = button.querySelector('i');
+            // Ensure correct initial state if needed (e.g., check a data attribute)
+            // heartIcon.classList.add('far'); // Assuming default is not favorited
+            // button.innerHTML = '<i class="far fa-heart"></i> Add to Favorites';
 
-                // Toggle heart icon
-                const heartIcon = this.querySelector('i');
-                if (heartIcon.classList.contains('far')) {
-                    heartIcon.classList.replace('far', 'fas');
-                    this.innerHTML = '<i class="fas fa-heart"></i> Added to Favorites';
-                    this.classList.replace('btn-outline-primary', 'btn-primary');
+            // Remove previous listeners to avoid duplicates if called multiple times
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
 
-                    // Add to favorites via AJAX
-                    addToFavorites(propertyId);
+            newButton.addEventListener('click', function() {
+                const propertyId = this.dataset.id || this.querySelector('i')?.dataset.id;
+                if (!propertyId) {
+                    console.error('Favorite button missing property ID');
+                    return;
+                }
+
+                const currentHeartIcon = this.querySelector('i');
+                const isFavorited = currentHeartIcon.classList.contains('fas');
+
+                if (!isFavorited) {
+                    // Add to favorites
+                    currentHeartIcon.classList.replace('far', 'fas');
+                    this.innerHTML = `<i class="fas fa-heart" data-id="${propertyId}"></i> Added to Favorites`;
+                    this.classList.replace('btn-outline-secondary', 'btn-primary');
+                    toggleFavorite(propertyId, 'addFavorite');
                 } else {
-                    heartIcon.classList.replace('fas', 'far');
-                    this.innerHTML = '<i class="far fa-heart"></i> Add to Favorites';
-                    this.classList.replace('btn-primary', 'btn-outline-primary');
-
-                    // Remove from favorites via AJAX
-                    removeFromFavorites(propertyId);
+                    // Remove from favorites
+                    currentHeartIcon.classList.replace('fas', 'far');
+                    this.innerHTML = `<i class="far fa-heart" data-id="${propertyId}"></i> Add to Favorites`;
+                    this.classList.replace('btn-primary', 'btn-outline-secondary');
+                    toggleFavorite(propertyId, 'removeFavorite');
                 }
             });
         });
     }
 
-    // Add to favorites function
-    function addToFavorites(propertyId) {
-        fetch('/ROME/api/properties.php?action=addFavorite&property_id=' + propertyId, {
-            method: 'POST',
+    // Toggle favorite function (unified add/remove)
+    function toggleFavorite(propertyId, action) {
+        // Use the API router endpoint
+        fetch(`/ROME/api/index.php?endpoint=properties&action=${action}&property_id=${propertyId}`, {
+            method: 'POST', // POST is often used for state changes
             credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                 // Handle non-JSON error responses (like 403)
+                 return response.text().then(text => { throw new Error(text || `HTTP error! status: ${response.status}`) });
+            }
+            return response.json();
+        })
         .then(data => {
-            if (data.success) {
-                showToast('Property added to favorites!', 'success');
+            if (data.success || data.status === 'success') { // Check both possible success keys
+                showToast(data.message || `Property ${action === 'addFavorite' ? 'added to' : 'removed from'} favorites!`, 'success');
             } else {
-                showToast(data.message || 'Error adding to favorites', 'error');
+                showToast(data.message || `Error ${action === 'addFavorite' ? 'adding to' : 'removing from'} favorites`, 'error');
+                // Revert UI change on error if needed
+                const button = document.querySelector(`.add-to-favorites [data-id="${propertyId}"]`)?.closest('button');
+                if (button) {
+                    const heartIcon = button.querySelector('i');
+                    if (action === 'addFavorite') {
+                        heartIcon.classList.replace('fas', 'far');
+                        button.innerHTML = `<i class="far fa-heart" data-id="${propertyId}"></i> Add to Favorites`;
+                        button.classList.replace('btn-primary', 'btn-outline-secondary');
+                    } else {
+                        heartIcon.classList.replace('far', 'fas');
+                        button.innerHTML = `<i class="fas fa-heart" data-id="${propertyId}"></i> Added to Favorites`;
+                        button.classList.replace('btn-outline-secondary', 'btn-primary');
+                    }
+                }
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            showToast('Error adding to favorites', 'error');
+            console.error('Error toggling favorite:', error);
+            showToast(`Error toggling favorite: ${error.message}`, 'error');
+            // Revert UI change on error
+             const button = document.querySelector(`.add-to-favorites [data-id="${propertyId}"]`)?.closest('button');
+                if (button) {
+                    const heartIcon = button.querySelector('i');
+                    if (action === 'addFavorite') {
+                        heartIcon.classList.replace('fas', 'far');
+                        button.innerHTML = `<i class="far fa-heart" data-id="${propertyId}"></i> Add to Favorites`;
+                        button.classList.replace('btn-primary', 'btn-outline-secondary');
+                    } else {
+                        heartIcon.classList.replace('far', 'fas');
+                        button.innerHTML = `<i class="fas fa-heart" data-id="${propertyId}"></i> Added to Favorites`;
+                        button.classList.replace('btn-outline-secondary', 'btn-primary');
+                    }
+                }
         });
     }
 
-    // Remove from favorites function
-    function removeFromFavorites(propertyId) {
-        fetch('/ROME/api/properties.php?action=removeFavorite&property_id=' + propertyId, {
+    // Call initFavoriteButtons on initial load for buttons outside the modal
+    initFavoriteButtons();
+
+    // --- Reservation Functionality ---
+    function makeReservation(propertyId, action = 'reserve', buttonElement = null) {
+        const formData = new FormData();
+        formData.append('property_id', propertyId);
+        formData.append('action', action); // 'reserve' or 'cancel'
+
+        fetch('/ROME/api/make_reservation.php', {
             method: 'POST',
+            body: formData,
             credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+             if (!response.ok) {
+                 return response.text().then(text => { throw new Error(text || `HTTP error! status: ${response.status}`) });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                showToast('Property removed from favorites!', 'info');
+                Swal.fire(
+                    action === 'reserve' ? 'Reserved!' : 'Cancelled!',
+                    data.message || `Your reservation has been ${action === 'reserve' ? 'placed' : 'cancelled'}.`,
+                    'success'
+                );
+                // Update button state if element is provided
+                if (buttonElement) {
+                    if (action === 'reserve') {
+                        buttonElement.innerHTML = getReservationButtonText('pending');
+                        buttonElement.classList.remove('btn-primary');
+                        buttonElement.classList.add('btn-warning');
+                        buttonElement.setAttribute('data-reservation-status', 'pending');
+                    } else { // cancel
+                         buttonElement.innerHTML = getReservationButtonText(''); // Reset to default
+                        buttonElement.classList.remove('btn-warning');
+                        buttonElement.classList.add('btn-primary');
+                        buttonElement.setAttribute('data-reservation-status', '');
+                    }
+                }
+                 // Optionally close the modal
+                 // $('#propertyDetailsModal').modal('hide');
+                 // Optionally refresh part of the page or the whole page
+                 // location.reload();
             } else {
-                showToast(data.message || 'Error removing from favorites', 'error');
+                Swal.fire(
+                    'Error!',
+                    data.message || 'Could not complete the reservation action.',
+                    'error'
+                );
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            showToast('Error removing from favorites', 'error');
+            console.error('Error making reservation:', error);
+            Swal.fire(
+                'Error!',
+                `An error occurred: ${error.message}`,
+                'error'
+            );
         });
     }
 
@@ -299,230 +500,95 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Toast notification function
-    function showToast(message, type = 'info') {
-        // Check if toastr is available
-        if (typeof toastr !== 'undefined') {
+    // Toast notification function (ensure it's defined or imported)
+    function showToast(message, type = 'info', duration = 3000) {
+        // Check if the utility function exists, otherwise use alert
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, type, duration);
+        } else if (typeof toastr !== 'undefined') {
+            // Fallback to toastr if available
             toastr[type](message);
         } else {
-            alert(message);
+            // Basic alert fallback
+            console.log(`Toast [${type}]: ${message}`);
+            // alert(`[${type.toUpperCase()}] ${message}`); // Avoid disruptive alerts if possible
         }
     }
-});
 
-// When property details modal opens
-$('#propertyDetailsModal').on('show.bs.modal', function (event) {
-    const button = $(event.relatedTarget);
-    const propertyId = button.data('id');
-    const propertyName = button.data('name');
+    // Re-run initFavoriteButtons if modal content changes dynamically elsewhere
+    // Example: If properties are loaded via AJAX after initial page load
 
-    // Update reserve button with property data
-    const reserveBtn = $(this).find('.btn-reserve');
-    reserveBtn.attr('data-property-id', propertyId);
-    reserveBtn.attr('data-property-name', propertyName);
-});
+}); // End DOMContentLoaded
 
-$(document).on('click', '.view-details', function() {
-    var button = $(this);
-    var images;
+// Ensure jQuery dependent code runs after jQuery is loaded
+// This $(document).ready() is redundant if all code is inside DOMContentLoaded
+// but can be useful if mixing vanilla JS and jQuery outside the main listener.
+/*
+$(document).ready(function() {
+    // Initialize Bootstrap components that rely on jQuery
+    $('[data-toggle="tooltip"]').tooltip();
+    $('[data-toggle="popover"]').popover();
 
-    try {
-        images = JSON.parse(button.attr('data-images')) || [];
-        // If images array is empty or invalid, use default image
-        if (!Array.isArray(images) || images.length === 0) {
-            images = ['/ROME/assets/img/default-property.jpg'];
+    // Event delegation for dynamically added reserve buttons (alternative approach)
+    $('#propertyDetailsModal').on('click', '.reserve-button', function() {
+        if ($(this).prop('disabled')) return; // Skip if disabled
+
+        const propertyId = $(this).data('property-id');
+        const propertyName = $(this).data('property-name');
+        const currentStatus = $(this).data('reservation-status');
+        const buttonElement = this;
+
+        let action = 'reserve';
+        let title = 'Make Reservation';
+        let text = 'Would you like to reserve ' + propertyName + '?';
+        let confirmText = 'Yes, reserve it!';
+        let icon = 'question';
+
+        if (currentStatus === 'pending') {
+            action = 'cancel';
+            title = 'Cancel Reservation';
+            text = 'Cancel your pending reservation for ' + propertyName + '?';
+            confirmText = 'Yes, cancel it!';
+            icon = 'warning';
         }
-    } catch (e) {
-        console.error('Error parsing images:', e);
-        images = ['/ROME/assets/img/default-property.jpg'];
-    }
 
-    var modalCarousel = $('#propertyImageCarousel');
-    var indicators = '';
-    var slides = '';
-
-    // Clear existing carousel items
-    modalCarousel.find('.carousel-indicators').empty();
-    modalCarousel.find('.carousel-inner').empty();
-
-    // Generate new carousel items
-    images.forEach(function(imagePath, index) {
-        // Create indicator
-        indicators += `
-            <li data-target="#propertyImageCarousel"
-                data-slide-to="${index}"
-                class="${index === 0 ? 'active' : ''}"
-                aria-label="Slide ${index + 1}">
-            </li>`;
-
-        // Create slide with error handling for images
-        slides += `
-            <div class="carousel-item ${index === 0 ? 'active' : ''}">
-                <img src="${imagePath}"
-                     class="d-block w-100"
-                     alt="Property Image ${index + 1}"
-                     onerror="this.onerror=null; this.src='/ROME/assets/img/default-property.jpg';">
-            </div>`;
-    });
-
-    // Update carousel structure
-    modalCarousel.html(`
-        <ol class="carousel-indicators">
-            ${indicators}
-        </ol>
-        <div class="carousel-inner">
-            ${slides}
-        </div>
-        ${images.length > 1 ? `
-            <a class="carousel-control-prev" href="#propertyImageCarousel" role="button" data-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="sr-only">Previous</span>
-            </a>
-            <a class="carousel-control-next" href="#propertyImageCarousel" role="button" data-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="sr-only">Next</span>
-            </a>
-        ` : ''}
-    `);
-
-    // Initialize carousel with options
-    modalCarousel.carousel({
-        interval: false, // Disable auto-sliding
-        keyboard: true, // Enable keyboard control
-        touch: true,    // Enable touch swipe
-        pause: 'hover'  // Pause on hover
-    });
-
-    // Update other modal content
-    $('#modalDetailsContainer').html(`
-        <h3>${button.data('name')}</h3>
-        <div class="h4">₱${button.data('rent').toLocaleString()}/month</div>
-        <div class="detail-item">
-            <i class="fas fa-door-open"></i> ${button.data('rooms')}
-        </div>
-        <div class="detail-item">
-            <i class="fas fa-map-marker-alt"></i> ${button.data('address')}
-        </div>
-        <div class="description mt-3">
-            ${button.data('description') || 'No description available'}
-        </div>
-        <div class="actions mt-3">
-            <button class="btn btn-primary btn-block">
-                Contact Owner
-            </button>
-        </div>
-    `);
-});
-
-// Add this event handler
-$(document).on('click', '.reserve-button', function() {
-    const propertyId = $(this).data('property-id');
-    const propertyName = $(this).data('property-name');
-    const status = $(this).data('status');
-
-    if (status === 'pending') {
         Swal.fire({
-            title: 'Reservation Pending',
-            text: 'Your reservation is waiting for admin approval.',
-            icon: 'info'
+            title: title,
+            text: text,
+            icon: icon,
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: confirmText
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Assuming makeReservation is globally available or defined within scope
+                makeReservation(propertyId, action, buttonElement);
+            }
         });
-        return;
-    }
-
-    if (status === 'approved') {
-        window.location.href = '/ROME/tenant/payment.php?property_id=' + propertyId;
-        return;
-    }
-
-    Swal.fire({
-        title: 'Make Reservation',
-        text: 'Would you like to reserve ' + propertyName + '?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, reserve it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            makeReservation(propertyId);
-        }
     });
+
+    // Event delegation for dynamically added favorite buttons
+    $(document).on('click', '.add-to-favorites', function() {
+         const propertyId = $(this).data('id') || $(this).find('i').data('id');
+         if (!propertyId) return;
+
+         const heartIcon = $(this).find('i');
+         const isFavorited = heartIcon.hasClass('fas');
+         const action = isFavorited ? 'removeFavorite' : 'addFavorite';
+
+         // Assuming toggleFavorite is globally available or defined within scope
+         toggleFavorite(propertyId, action);
+
+         // Toggle UI immediately (optimistic update)
+         if (!isFavorited) {
+             heartIcon.removeClass('far').addClass('fas');
+             $(this).html(`<i class="fas fa-heart" data-id="${propertyId}"></i> Added to Favorites`).removeClass('btn-outline-secondary').addClass('btn-primary');
+         } else {
+             heartIcon.removeClass('fas').addClass('far');
+             $(this).html(`<i class="far fa-heart" data-id="${propertyId}"></i> Add to Favorites`).removeClass('btn-primary').addClass('btn-outline-secondary');
+         }
+    });
+
 });
-
-function makeReservation(propertyId) {
-    $.ajax({
-        url: '/ROME/api/make_reservation.php',
-        type: 'POST',
-        data: {
-            property_id: propertyId,
-            action: 'reserve'
-        },
-        success: function(response) {
-            if (response.success) {
-                Swal.fire({
-                    title: 'Reserved!',
-                    text: 'Your reservation has been submitted and is pending approval.',
-                    icon: 'success'
-                }).then(() => {
-                    updateReservationButton(propertyId, 'pending');
-                });
-            } else {
-                Swal.fire('Error!', response.message || 'Failed to make reservation.', 'error');
-            }
-        },
-        error: function() {
-            Swal.fire('Error!', 'Something went wrong. Please try again.', 'error');
-        }
-    });
-}
-
-function cancelReservation(propertyId) {
-    $.ajax({
-        url: '/ROME/api/make_reservation.php',
-        type: 'POST',
-        data: {
-            property_id: propertyId,
-            action: 'cancel'
-        },
-        success: function(response) {
-            if (response.success) {
-                Swal.fire(
-                    'Cancelled!',
-                    'Your reservation has been cancelled.',
-                    'success'
-                ).then(() => {
-                    // Update button appearance
-                    updateReservationButton(propertyId, false);
-                });
-            } else {
-                Swal.fire(
-                    'Error!',
-                    response.message || 'Failed to cancel reservation.',
-                    'error'
-                );
-            }
-        },
-        error: function() {
-            Swal.fire(
-                'Error!',
-                'Something went wrong. Please try again.',
-                'error'
-            );
-        }
-    });
-}
-
-// Update the button state handling
-function updateReservationButton(propertyId, status) {
-    const btn = $(`.reserve-button[data-property-id="${propertyId}"]`);
-    if (status === 'pending') {
-        btn.addClass('btn-warning').removeClass('btn-primary btn-success btn-danger')
-           .html('<i class="fas fa-clock"></i> Pending Approval');
-    } else if (status === 'approved') {
-        btn.addClass('btn-success').removeClass('btn-primary btn-warning btn-danger')
-           .html('<i class="fas fa-check"></i> Approved - Proceed to Payment').prop('disabled', true);
-    } else {
-        btn.removeClass('btn-warning btn-success btn-danger').addClass('btn-primary')
-           .html('<i class="fas fa-calendar-check"></i> Reserve').prop('disabled', false);
-    }
-}
+*/
