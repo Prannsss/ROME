@@ -47,7 +47,7 @@ INSERT INTO `bills` (`id`, `user_id`, `room_id`, `amount`, `description`, `due_d
 (1, 2, 13, 3500.00, 'Monthly Rent - January 2023', '2023-01-05', 'paid', '2025-04-14 00:14:23', '2025-04-14 00:14:23'),
 (2, 2, 13, 3500.00, 'Monthly Rent - February 2023', '2023-02-05', 'paid', '2025-04-14 00:14:23', '2025-04-14 00:14:23'),
 (3, 2, 13, 3500.00, 'Monthly Rent - March 2023', '2023-03-05', 'unpaid', '2025-04-14 00:14:23', '2025-04-14 00:14:23'),
-(0, 11, 25, 3500.00, 'Initial Rent Payment for Reservation #1', '2025-04-29', 'unpaid', '2025-04-30 01:08:38', '2025-04-30 01:08:38');
+(4, 11, 25, 3500.00, 'Initial Rent Payment for Reservation #1', '2025-04-29', 'unpaid', '2025-04-30 01:08:38', '2025-04-30 01:08:38');
 
 -- --------------------------------------------------------
 
@@ -64,6 +64,7 @@ CREATE TABLE `current_rentals` (
   `start_date` date NOT NULL,
   `end_date` date NOT NULL,
   `monthly_rent` decimal(10,2) NOT NULL,
+  `security_deposit` decimal(10,2) DEFAULT 0.00,
   `status` enum('active','expired','terminated') NOT NULL DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp()
@@ -75,6 +76,14 @@ CREATE TABLE `current_rentals` (
 
 INSERT INTO `current_rentals` (`id`, `user_id`, `room_id`, `room_name`, `room_type`, `start_date`, `end_date`, `monthly_rent`, `status`, `created_at`, `updated_at`) VALUES
 (1, 2, 13, 'Cozy Room 1', 'Economy', '2023-01-01', '2023-12-31', 3500.00, 'active', '2025-04-14 08:14:23', '2025-04-14 08:14:23');
+
+--
+-- Update security deposit for current rentals
+--
+
+UPDATE `current_rentals`
+SET `security_deposit` = monthly_rent
+WHERE `security_deposit` IS NULL OR `security_deposit` = 0;
 
 -- --------------------------------------------------------
 
@@ -177,6 +186,10 @@ CREATE TABLE `payments` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `payments`
+ADD COLUMN `bill_id` int(10) UNSIGNED NOT NULL AFTER `id`,
+ADD KEY `bill_id` (`bill_id`);
 
 -- --------------------------------------------------------
 
@@ -500,8 +513,20 @@ ALTER TABLE `users`
 --
 ALTER TABLE `visitor_logs`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-COMMIT;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+--
+-- AUTO_INCREMENT for table `bills`
+--
+ALTER TABLE `bills`
+  MODIFY COLUMN `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY;
+
+--
+-- Update the existing bill with ID 0 to have a proper ID
+--
+UPDATE `bills` SET `id` = 4 WHERE `id` = 0;
+
+ALTER TABLE `current_rentals`
+ADD COLUMN `security_deposit` decimal(10,2) DEFAULT 0.00R_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+AFTER `monthly_rent`;/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+1 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+COMMIT;/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

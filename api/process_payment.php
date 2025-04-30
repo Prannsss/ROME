@@ -14,69 +14,70 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
-// Expect bill_id instead of property_id for bill payments
-$bill_id = isset($_POST['bill_id']) ? (int)$_POST['bill_id'] : 0;
-$amount = isset($_POST['amount']) ? (float)$_POST['amount'] : 0; // Amount should come from POST
-$payment_method = isset($_POST['payment_method']) ? $_POST['payment_method'] : '';
-
-if ($bill_id <= 0 || $amount <= 0 || empty($payment_method)) {
-    echo json_encode(['success' => false, 'message' => 'Missing or invalid payment details (bill_id, amount, payment_method).']);
-    exit;
-}
-
 try {
-    // Use the global $connect variable from config.php
-    global $connect;
-
-    // Start transaction
     $connect->beginTransaction();
 
-    // 1. Fetch bill details (including room_id and verify amount/status)
-    $stmt_fetch_bill = $connect->prepare("SELECT room_id, amount, status FROM bills WHERE id = ? AND user_id = ?");
-    $stmt_fetch_bill->execute([$bill_id, $user_id]);
-    $bill = $stmt_fetch_bill->fetch(PDO::FETCH_ASSOC);
+    $user_id = $_SESSION['user_id'];
+    $room_id = isset($_POST['room_id']) ? (int)$_POST['room_id'] : 0;
+    $bill_id = isset($_POST['bill_id']) ? (int)$_POST['bill_id'] : 0;
+    $payment_method = $_POST['payment_method'] ?? '';
 
-    if (!$bill) {
-        throw new Exception('Bill not found or access denied.');
+    if ($bill_id > 0) {
+        // Process bill payment
+        $stmt = $connect->prepare("
+            UPDATE bills
+            SET status = 'paid',
+                updated_at = NOW()
+            WHERE id = ? AND user_id = ?
+        ");
+        $stmt->execute([$bill_id, $user_id]);
     }
 
-    if ($bill['status'] === 'paid') {
-        throw new Exception('This bill has already been paid.');
+    if ($room_id > 0) {
+        // Update room status
+        $stmt = $connect->prepare("
+            UPDATE room_rental_registrations
+            SET vacant = 0
+            WHERE id = ?
+        ");
+        $stmt->execute([$room_id]);
+
+        // Create rental record
+        $stmt = $connect->prepare("
+            INSERT INTO current_rentals (user_id, room_id, start_date, end_date, status)
+            VALUES (?, ?, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 1 YEAR), 'active')
+        ");
+        $stmt->execute([$user_id, $room_id]);
+
+        // Update any existing reservations
+        $stmt = $connect->prepare("
+            UPDATE reservations
+            SET status = 'completed'
+            WHERE room_id = ? AND user_id = ? AND status IN ('pending', 'approved')
+        ");
+        $stmt->execute([$room_id, $user_id]);
     }
 
-    // Optional: Verify the submitted amount matches the bill amount
-    if (abs($bill['amount'] - $amount) > 0.01) { // Allow for small floating point differences
-        // Decide how to handle amount mismatch - reject or log?
-        // For now, let's use the amount from the bill record for safety
-        $amount = (float)$bill['amount'];
-        // Or throw an exception: throw new Exception('Payment amount mismatch.');
-    }
-
-    $room_id = $bill['room_id'];
-
-    // 2. Record payment in the payments table
-    // Note: payments table uses room_id, not bill_id directly
-    $stmt_payment = $connect->prepare("\n        INSERT INTO payments (user_id, room_id, amount, payment_date, payment_method, status) -- Removed bill_id
-        VALUES (?, ?, ?, CURDATE(), ?, 'completed') -- Removed bill_id placeholder
+    // Record payment
+    $stmt = $connect->prepare("
+        INSERT INTO payments (user_id, room_id, bill_id, amount, payment_method, payment_date, status)
+        VALUES (?, ?, ?,
+            (SELECT COALESCE(
+                (SELECT amount FROM bills WHERE id = ?),
+                (SELECT rent FROM room_rental_registrations WHERE id = ?)
+            )),
+            ?, CURRENT_TIMESTAMP, 'completed')
     ");
-    // Removed bill_id from params
-    $stmt_payment->execute([$user_id, $room_id, $amount, $payment_method]);
+    $stmt->execute([$user_id, $room_id, $bill_id, $bill_id, $room_id, $payment_method]);
 
-    // 3. Update the specific bill status to 'paid'
-    $stmt_update_bill = $connect->prepare("\n        UPDATE bills\n        SET status = 'paid', updated_at = NOW()\n        WHERE id = ? AND user_id = ?\n    ");
-    $stmt_update_bill->execute([$bill_id, $user_id]);
-
-    // Commit transaction
     $connect->commit();
-    echo json_encode(['success' => true, 'message' => 'Payment processed successfully.']);
+    echo json_encode(['success' => true]);
 
 } catch (Exception $e) {
-    // Rollback transaction on error
-    if ($connect->inTransaction()) {
+    if (isset($connect) && $connect->inTransaction()) {
         $connect->rollBack();
     }
     error_log('Payment Processing Error: ' . $e->getMessage()); // Log the error
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]); // Send specific error back
+    echo json_encode(['success' => false, 'message' => 'Payment processing failed']);
 }
 ?>

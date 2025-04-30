@@ -1,3 +1,21 @@
+<?php
+require_once($_SERVER['DOCUMENT_ROOT'].'/ROME/config/config.php');
+
+// Fetch room details including rent
+if (isset($current_rental['room_id'])) {
+    try {
+        $stmt = $connect->prepare('SELECT rent FROM room_rental_registrations WHERE id = :room_id');
+        $stmt->execute(['room_id' => $current_rental['room_id']]);
+        $room_details = $stmt->fetch(PDO::FETCH_ASSOC);
+        $monthly_rent = $room_details['rent'] ?? $current_rental['monthly_rent'];
+    } catch(PDOException $e) {
+        // Fallback to existing monthly_rent if query fails
+        $monthly_rent = $current_rental['monthly_rent'];
+        error_log("Error fetching room rent: " . $e->getMessage());
+    }
+}
+?>
+
 <!-- My Room Content -->
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
     <h1 class="h3 mb-0 text-gray-800">My Room</h1>
@@ -13,7 +31,7 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <img src="../../<?php echo $current_rental['room_image'] ? $current_rental['room_image'] : 'assets/img/default-room.jpg'; ?>" 
+                        <img src="/ROME/<?php echo $current_rental['room_image'] ? $current_rental['room_image'] : 'assets/img/default-room.jpg'; ?>"
                              class="img-fluid rounded mb-4" alt="Room Image">
                     </div>
                     <div class="col-md-6">
@@ -21,15 +39,15 @@
                         <p><i class="fas fa-map-marker-alt mr-2 text-primary"></i> <?php echo $current_rental['location']; ?></p>
                         <p><i class="fas fa-bed mr-2 text-primary"></i> <?php echo $current_rental['room_type']; ?></p>
                         <p><i class="fas fa-calendar-alt mr-2 text-primary"></i> <strong>Lease Period:</strong><br>
-                           <?php echo date('M d, Y', strtotime($current_rental['start_date'])); ?> - 
+                           <?php echo date('M d, Y', strtotime($current_rental['start_date'])); ?> -
                            <?php echo date('M d, Y', strtotime($current_rental['end_date'])); ?></p>
-                        <p><i class="fas fa-dollar-sign mr-2 text-primary"></i> <strong>Monthly Rent:</strong>
-                           $<?php echo number_format($current_rental['monthly_rent'], 2); ?></p>
+                        <p><strong>Monthly Rent:</strong>
+                           ₱<?php echo number_format($monthly_rent, 2); ?></p>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Amenities</h6>
@@ -54,7 +72,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-lg-4">
         <div class="card shadow mb-4">
             <div class="card-header py-3">
@@ -63,8 +81,8 @@
             <div class="card-body">
                 <p><strong>Lease Start:</strong> <?php echo date('F d, Y', strtotime($current_rental['start_date'])); ?></p>
                 <p><strong>Lease End:</strong> <?php echo date('F d, Y', strtotime($current_rental['end_date'])); ?></p>
-                <p><strong>Monthly Rent:</strong> $<?php echo number_format($current_rental['monthly_rent'], 2); ?></p>
-                <p><strong>Security Deposit:</strong> $<?php echo number_format($current_rental['security_deposit'], 2); ?></p>
+                <p><strong>Monthly Rent:</strong> ₱<?php echo number_format($monthly_rent, 2); ?></p>
+                <p><strong>Security Deposit:</strong> ₱<?php echo number_format($current_rental['security_deposit'] ?? 0, 2); ?></p>
                 <p><strong>Payment Due Date:</strong> 1st of each month</p>
                 <hr>
                 <p><strong>Days Remaining:</strong>
@@ -82,7 +100,7 @@
                     $days_passed = $start_date->diff($today)->days;
                     $percentage = min(100, max(0, ($days_passed / $total_days) * 100));
                     ?>
-                    <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo $percentage; ?>%" 
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo $percentage; ?>%"
                          aria-valuenow="<?php echo $percentage; ?>" aria-valuemin="0" aria-valuemax="100">
                         <?php echo round($percentage); ?>%
                     </div>
@@ -92,7 +110,7 @@
                 </a>
             </div>
         </div>
-        
+
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Contact Landlord</h6>

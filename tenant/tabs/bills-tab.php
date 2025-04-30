@@ -1,3 +1,126 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<?php
+// Add this function at the top of the file, after your initial includes
+function generateMonthlyBills($db, $user_id) {
+    try {
+        // Get active rental for the user
+        $stmt = $db->prepare("
+            SELECT r.*, rrr.rent as monthly_rent, rrr.fullname as room_name, rrr.image_path
+            FROM current_rentals r
+            JOIN room_rental_registrations rrr ON r.room_id = rrr.id
+            WHERE r.user_id = :user_id AND r.status = 'active'
+        ");
+        $stmt->execute([':user_id' => $user_id]);
+        $rental = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($rental) {
+            // Generate bill for next month
+            $nextMonth = date('Y-m-01', strtotime('+1 month'));
+            $stmt = $db->prepare("
+                SELECT COUNT(*) FROM bills
+                WHERE user_id = :user_id
+                AND room_id = :room_id
+                AND DATE_FORMAT(due_date, '%Y-%m-01') = :next_month
+            ");
+            $stmt->execute([
+                ':user_id' => $user_id,
+                ':room_id' => $rental['room_id'],
+                ':next_month' => $nextMonth
+            ]);
+            $billExists = $stmt->fetchColumn() > 0;
+
+            // Generate bill if it doesn't exist
+            if (!$billExists) {
+                $stmt = $db->prepare("
+                    INSERT INTO bills (
+                        user_id,
+                        room_id,
+                        amount,
+                        description,
+                        due_date,
+                        status,
+                        created_at
+                    ) VALUES (
+                        :user_id,
+                        :room_id,
+                        :amount,
+                        :description,
+                        :due_date,
+                        'unpaid',
+                        NOW()
+                    )
+                ");
+
+                $dueDate = date('Y-m-05', strtotime('+1 month')); // Due on the 5th of next month
+                $description = "Monthly Rent - " . $rental['room_name'] . " (" . date('F Y', strtotime('+1 month')) . ")";
+
+                $stmt->execute([
+                    ':user_id' => $user_id,
+                    ':room_id' => $rental['room_id'],
+                    ':amount' => $rental['monthly_rent'],
+                    ':description' => $description,
+                    ':due_date' => $dueDate
+                ]);
+            }
+        }
+    } catch(PDOException $e) {
+        error_log("Error generating monthly bill: " . $e->getMessage());
+    }
+}
+
+try {
+    // Use standardized connection
+    $db = getDbConnection();
+
+    // Add this line after getting the database connection
+    generateMonthlyBills($db, $_SESSION['user_id']);
+
+    // Update the bills query to order by most recent first
+    $stmt = $db->prepare("
+        SELECT b.*,
+               COALESCE(b.description, CONCAT('Room Rent - ', rrr.fullname)) as description,
+               rrr.fullname as room_name
+        FROM bills b
+        LEFT JOIN room_rental_registrations rrr ON b.room_id = rrr.id
+        WHERE b.user_id = :user_id
+        ORDER BY b.due_date DESC, b.created_at DESC
+    ");
+    $stmt->execute([':user_id' => $_SESSION['user_id']]);
+    $bills = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch(PDOException $e) {
+    error_log($e->getMessage());
+    $bills = [];
+}
+
+// Add a fallback description if none exists
+foreach ($bills as &$bill) {
+    if (!isset($bill['description']) || empty($bill['description'])) {
+        $bill['description'] = 'Room Payment';
+    }
+}
+unset($bill);
+
+// Update payment history query
+try {
+    $stmt = $db->prepare("
+        SELECT p.*,
+               COALESCE(b.description, CONCAT('Room Payment - ', rrr.fullname)) as description
+        FROM payments p
+        LEFT JOIN bills b ON p.bill_id = b.id
+        LEFT JOIN room_rental_registrations rrr ON p.room_id = rrr.id
+        WHERE p.user_id = :user_id
+        ORDER BY p.payment_date DESC
+    ");
+    $stmt->execute([':user_id' => $_SESSION['user_id']]);
+    $payment_history = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch(PDOException $e) {
+    error_log($e->getMessage());
+    $payment_history = [];
+}
+?>
+
 <!-- Bills Content -->
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
     <h1 class="h3 mb-0 text-gray-800">Bills & Payments</h1>
@@ -33,27 +156,29 @@
                             <?php foreach($bills as $bill): ?>
                             <tr>
                                 <td><input type="checkbox" class="bill-checkbox" value="<?php echo $bill['id']; ?>"></td>
-                                <td><?php echo $bill['description']; ?></td>
+                                <td><?php echo htmlspecialchars($bill['description']); ?></td>
                                 <td>₱<?php echo number_format($bill['amount'], 2); ?></td>
                                 <td><?php echo date('M d, Y', strtotime($bill['due_date'])); ?></td>
                                 <td>
-                                    <?php if (strtotime($bill['due_date']) < time()): ?>
-                                    <span class="badge badge-danger">Overdue</span>
-                                    <?php else: ?>
-                                    <span class="badge badge-warning">Due Soon</span>
-                                    <?php endif; ?>
+                                    <?php
+                                    if (strtotime($bill['due_date']) < time()) {
+                                        echo '<span class="badge badge-danger">Overdue</span>';
+                                    } elseif ($bill['status'] == 'paid') {
+                                        echo '<span class="badge badge-success">Paid</span>';
+                                    } else {
+                                        echo '<span class="badge badge-warning">Due Soon</span>';
+                                    }
+                                    ?>
                                 </td>
                                 <td>
-                                    <?php if (isset($bill['id']) && is_numeric($bill['id']) && $bill['id'] > 0): ?>
-                                        <button class="btn btn-sm btn-primary" onclick="window.location.href='payment.php?bill_id=<?php echo $bill['id']; ?>'">
-                                            <i class="fas fa-credit-card"></i> Pay
-                                        </button>
-                                        <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#invoiceModal" onclick="viewBill(<?php echo $bill['id']; ?>)">
-                                            <i class="fas fa-eye"></i> View
-                                        </button>
-                                    <?php else: ?>
-                                        <span class="text-muted small">Invalid Bill Data</span>
+                                    <?php if ($bill['status'] != 'paid'): ?>
+                                    <button class="btn btn-sm btn-primary" onclick="handlePayment(<?php echo $bill['id']; ?>)">
+                                        <i class="fas fa-credit-card"></i> Pay
+                                    </button>
                                     <?php endif; ?>
+                                    <button class="btn btn-sm btn-info" onclick="viewBill(<?php echo $bill['id']; ?>)">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -100,8 +225,12 @@ function viewBill(billId) {
     // Show loading state
     document.getElementById('invoiceModalBody').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div></div>';
     $('#invoiceModal').modal('show');
-    document.getElementById('modalPayButton').onclick = function() {
-        window.location.href = 'payment.php?bill_id=' + billId;
+
+    // Update the pay button to use handlePayment
+    const payButton = document.getElementById('modalPayButton');
+    payButton.setAttribute('data-bill-id', billId);
+    payButton.onclick = function() {
+        handlePayment(billId);
     };
 
     // Fetch invoice details using AJAX (replace with your actual endpoint)
@@ -115,6 +244,68 @@ function viewBill(billId) {
             document.getElementById('invoiceModalBody').innerHTML = '<p class="text-danger">Error loading invoice details.</p>';
         });
 }
+</script>
+
+<script>
+$(document).ready(function() {
+    // Handle select all checkbox
+    $('#selectAll').change(function() {
+        $('.bill-checkbox').prop('checked', $(this).prop('checked'));
+        updateSelectedBills();
+    });
+
+    // Handle individual checkboxes
+    $('.bill-checkbox').change(function() {
+        updateSelectedBills();
+    });
+
+    function updateSelectedBills() {
+        const selectedBills = $('.bill-checkbox:checked').map(function() {
+            return $(this).val();
+        }).get();
+
+        const billsList = $('#selectedBillsList');
+        if (selectedBills.length > 0) {
+            let html = '';
+            selectedBills.forEach(billId => {
+                const row = $(`.bill-checkbox[value="${billId}"]`).closest('tr');
+                const description = row.find('td:eq(1)').text();
+                const amount = row.find('td:eq(2)').text();
+                html += `<div class="alert alert-info mb-2">
+                    ${description} - ${amount}
+                </div>`;
+            });
+            billsList.html(html);
+        } else {
+            billsList.html('<div class="alert alert-info">Please select bills to pay.</div>');
+        }
+    }
+});
+</script>
+
+<script>
+function handlePayment(billId) {
+    // Show confirmation dialog
+    Swal.fire({
+        title: 'Proceed to Payment',
+        text: 'You will be redirected to the payment page. Continue?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, proceed',
+        cancelButtonText: 'No, cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Redirect to payment page
+            window.location.href = '../payment.php?bill_id=' + billId;
+        }
+    });
+}
+
+// Update the modal pay button handler too
+document.getElementById('modalPayButton').onclick = function() {
+    const billId = this.getAttribute('data-bill-id');
+    handlePayment(billId);
+};
 </script>
 
         <div class="card shadow mb-4">
@@ -160,7 +351,7 @@ function viewBill(billId) {
             </div>
         </div>
     </div>
-    
+
     <div class="col-lg-4">
         <div class="card shadow mb-4">
             <div class="card-header py-3">
@@ -174,7 +365,7 @@ function viewBill(billId) {
                     </div>
                     <p class="small text-muted">You've paid 3 out of 4 bills this month.</p>
                 </div>
-                
+
                 <div class="mb-4">
                     <h5>Payment Methods</h5>
                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -198,7 +389,7 @@ function viewBill(billId) {
                         <i class="fas fa-plus mr-1"></i> Add Payment Method
                     </button>
                 </div>
-                
+
                 <div>
                     <h5>Upcoming Bills</h5>
                     <?php if (count($bills) > 0): ?>
@@ -219,7 +410,7 @@ function viewBill(billId) {
                 </div>
             </div>
         </div>
-        
+
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Auto-Pay Settings</h6>

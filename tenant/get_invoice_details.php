@@ -1,107 +1,102 @@
 <?php
-// Include database connection or necessary configuration
-require_once '../config/config.php'; // Use the correct config file
-require_once '../includes/functions.php'; // Include functions if needed
+require_once('../config/config.php');
+require_once('../includes/functions.php');
 
-// Use the PDO connection established in config.php
-global $connect; // Make the PDO connection variable available
+if (!isset($_SESSION['user_id'])) {
+    die('User not logged in');
+}
 
-header('Content-Type: text/html');
+$bill_id = isset($_GET['bill_id']) ? (int)$_GET['bill_id'] : 0;
 
-$bill_id = isset($_GET['bill_id']) ? intval($_GET['bill_id']) : 0;
-
-if ($bill_id > 0 && $connect) { // Check if connection exists
+if ($bill_id > 0) {
     try {
-        // Prepare statement using PDO
-        // Join bills with users and room_rental_registrations
-        $stmt = $connect->prepare("SELECT b.*, u.fullname as tenant_name, rrr.address as room_location, rrr.plot_number as room_plot
-                                 FROM bills b
-                                 JOIN users u ON b.user_id = u.id
-                                 JOIN room_rental_registrations rrr ON b.room_id = rrr.id
-                                 WHERE b.id = ?");
-        $stmt->execute([$bill_id]);
-        $bill = $stmt->fetch(PDO::FETCH_ASSOC); // Fetch using PDO
+        $stmt = $connect->prepare("
+            SELECT b.*, u.fullname as tenant_name, r.fullname as room_name,
+                   r.plot_number as room_plot, r.address as room_location
+            FROM bills b
+            JOIN users u ON b.user_id = u.id
+            JOIN room_rental_registrations r ON b.room_id = r.id
+            WHERE b.id = ? AND b.user_id = ?
+        ");
+        $stmt->execute([$bill_id, $_SESSION['user_id']]);
+        $bill = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($bill) {
-            // --- Invoice HTML Structure --- 
-?>
-            <div class="invoice-box">
-                <h4 class="mb-3">Invoice #<?php echo htmlspecialchars($bill['id']); ?></h4>
-                <hr>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>Billed To:</strong><br>
-                        <?php echo htmlspecialchars($bill['tenant_name']); ?><br>
-                        <!-- Add more tenant details if available from users table -->
+            // Generate invoice HTML
+            ?>
+            <div class="invoice p-3">
+                <div class="row mb-4">
+                    <div class="col-6">
+                        <h4>Bill #<?php echo htmlspecialchars($bill['id']); ?></h4>
+                        <p class="mb-1">Billed To:</p>
+                        <strong><?php echo htmlspecialchars($bill['tenant_name']); ?></strong><br>
+                        Room: <?php echo htmlspecialchars($bill['room_name']); ?><br>
+                        <?php echo htmlspecialchars($bill['room_location']); ?>
                     </div>
-                    <div class="col-md-6 text-md-right">
-                        <strong>Room Details:</strong><br>
-                        Plot/Unit: <?php echo htmlspecialchars($bill['room_plot']); ?><br>
-                        <?php echo htmlspecialchars($bill['room_location']); ?><br>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                     <div class="col-md-6">
-                        <strong>Bill Date:</strong> <?php echo date('M d, Y', strtotime($bill['created_at'])); ?>
-                     </div>
-                     <div class="col-md-6 text-md-right">
-                        <strong>Due Date:</strong> <?php echo date('M d, Y', strtotime($bill['due_date'])); ?>
-                     </div>
-                </div>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Description</th>
-                            <th class="text-right">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><?php echo htmlspecialchars($bill['description']); ?></td>
-                            <td class="text-right">₱<?php echo number_format($bill['amount'], 2); ?></td>
-                        </tr>
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td class="text-right"><strong>Total Amount Due:</strong></td>
-                            <td class="text-right"><strong>₱<?php echo number_format($bill['amount'], 2); ?></strong></td>
-                        </tr>
-                    </tfoot>
-                </table>
-                 <p class="text-muted small">Payment Status:
-                    <?php
-                        // Determine status based on 'status' column or due date
+                    <div class="col-6 text-right">
+                        <p class="mb-1">Due Date:</p>
+                        <strong><?php echo date('M d, Y', strtotime($bill['due_date'])); ?></strong><br>
+                        Status:
+                        <?php
                         $status = $bill['status'];
                         if ($status === 'unpaid' && strtotime($bill['due_date']) < time()) {
-                            $status = 'overdue'; // Update status if past due
+                            $status = 'overdue';
                         }
+                        $badge_class = match($status) {
+                            'paid' => 'badge-success',
+                            'overdue' => 'badge-danger',
+                            default => 'badge-warning'
+                        };
+                        ?>
+                        <span class="badge <?php echo $badge_class; ?>">
+                            <?php echo ucfirst($status); ?>
+                        </span>
+                    </div>
+                </div>
 
-                        $badge_class = 'badge-warning'; // Default for unpaid
-                        if ($status === 'paid') {
-                            $badge_class = 'badge-success';
-                        } elseif ($status === 'overdue') {
-                            $badge_class = 'badge-danger';
-                        }
-                        echo '<span class="badge ' . $badge_class . '">' . htmlspecialchars(ucfirst($status)) . '</span>';
-                    ?>
-                </p>
+                <div class="table-responsive mb-4">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th class="text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><?php echo htmlspecialchars($bill['description']); ?></td>
+                                <td class="text-right">₱<?php echo number_format($bill['amount'], 2); ?></td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th class="text-right">Total Amount:</th>
+                                <th class="text-right">₱<?php echo number_format($bill['amount'], 2); ?></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <?php if ($bill['status'] !== 'paid'): ?>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <?php if ($status === 'overdue'): ?>
+                        This bill is overdue. Please make payment as soon as possible.
+                    <?php else: ?>
+                        Please make payment before the due date to avoid late fees.
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
             </div>
-<?php
-            // --- End Invoice HTML ---
-
+            <?php
         } else {
-            echo '<p class="text-warning">Invoice details not found.</p>';
+            echo '<div class="alert alert-danger">Bill not found or access denied.</div>';
         }
     } catch (PDOException $e) {
-        // Log error properly in a real application
-        // error_log('Database Error: ' . $e->getMessage());
-        echo '<p class="text-danger">Error retrieving invoice details. Please try again later.</p>';
+        error_log('Database Error: ' . $e->getMessage());
+        echo '<div class="alert alert-danger">Error retrieving bill details. Please try again later.</div>';
     }
 } else {
-    if (!$connect) {
-         echo '<p class="text-danger">Database connection error.</p>';
-    } else {
-        echo '<p class="text-danger">Invalid Bill ID.</p>';
-    }
+    echo '<div class="alert alert-danger">Invalid Bill ID.</div>';
 }
 ?>

@@ -523,72 +523,27 @@ document.addEventListener('DOMContentLoaded', function() {
 // Ensure jQuery dependent code runs after jQuery is loaded
 // This $(document).ready() is redundant if all code is inside DOMContentLoaded
 // but can be useful if mixing vanilla JS and jQuery outside the main listener.
-/*
-$(document).ready(function() {
-    // Initialize Bootstrap components that rely on jQuery
-    $('[data-toggle="tooltip"]').tooltip();
-    $('[data-toggle="popover"]').popover();
 
-    // Event delegation for dynamically added reserve buttons (alternative approach)
-    $('#propertyDetailsModal').on('click', '.reserve-button', function() {
-        if ($(this).prop('disabled')) return; // Skip if disabled
+function handlePayment(propertyId) {
+    window.location.href = `/ROME/tenant/payment.php?room_id=${propertyId}`;
+}
 
-        const propertyId = $(this).data('property-id');
-        const propertyName = $(this).data('property-name');
-        const currentStatus = $(this).data('reservation-status');
-        const buttonElement = this;
+// Update the Rent Now button click handler
+$('#rentNowBtn').on('click', function() {
+    const propertyId = $(this).data('property-id');
+    const propertyName = $(this).data('property-name');
 
-        let action = 'reserve';
-        let title = 'Make Reservation';
-        let text = 'Would you like to reserve ' + propertyName + '?';
-        let confirmText = 'Yes, reserve it!';
-        let icon = 'question';
-
-        if (currentStatus === 'pending') {
-            action = 'cancel';
-            title = 'Cancel Reservation';
-            text = 'Cancel your pending reservation for ' + propertyName + '?';
-            confirmText = 'Yes, cancel it!';
-            icon = 'warning';
+    Swal.fire({
+        title: 'Confirm Rental',
+        text: `Are you sure you want to rent ${propertyName}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, proceed to payment!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            handlePayment(propertyId);
         }
-
-        Swal.fire({
-            title: title,
-            text: text,
-            icon: icon,
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: confirmText
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Assuming makeReservation is globally available or defined within scope
-                makeReservation(propertyId, action, buttonElement);
-            }
-        });
     });
-
-    // Event delegation for dynamically added favorite buttons
-    $(document).on('click', '.add-to-favorites', function() {
-         const propertyId = $(this).data('id') || $(this).find('i').data('id');
-         if (!propertyId) return;
-
-         const heartIcon = $(this).find('i');
-         const isFavorited = heartIcon.hasClass('fas');
-         const action = isFavorited ? 'removeFavorite' : 'addFavorite';
-
-         // Assuming toggleFavorite is globally available or defined within scope
-         toggleFavorite(propertyId, action);
-
-         // Toggle UI immediately (optimistic update)
-         if (!isFavorited) {
-             heartIcon.removeClass('far').addClass('fas');
-             $(this).html(`<i class="fas fa-heart" data-id="${propertyId}"></i> Added to Favorites`).removeClass('btn-outline-secondary').addClass('btn-primary');
-         } else {
-             heartIcon.removeClass('fas').addClass('far');
-             $(this).html(`<i class="far fa-heart" data-id="${propertyId}"></i> Add to Favorites`).removeClass('btn-primary').addClass('btn-outline-secondary');
-         }
-    });
-
 });
-*/

@@ -53,6 +53,8 @@ $page_title = "Payments & Bills Management";
     <style>
         <?php include('../assets/css/tabs.css'); ?>
     </style>
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 </head>
 <body>
     <div id="wrapper">
@@ -90,14 +92,6 @@ $page_title = "Payments & Bills Management";
                     <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class="h3 mb-0 text-gray-800">Payments & Bills Management</h1>
-                        <div>
-                            <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-success shadow-sm mr-2" data-toggle="modal" data-target="#addBillModal">
-                                <i class="fas fa-plus fa-sm text-white-50"></i> Create New Bill
-                            </a>
-                            <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
-                                <i class="fas fa-download fa-sm text-white-50"></i> Generate Report
-                            </a>
-                        </div>
                     </div>
 
                     <!-- Statistics Cards Row -->
@@ -247,7 +241,6 @@ $page_title = "Payments & Bills Management";
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addBillModalLabel">Create New Bill</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -294,6 +287,8 @@ $page_title = "Payments & Bills Management";
     <!-- DataTables JavaScript -->
     <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bootstrap4.min.js"></script>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
     $(document).ready(function() {
@@ -316,6 +311,16 @@ $page_title = "Payments & Bills Management";
         $('#saveBill').click(function() {
             const formData = new FormData($('#addBillForm')[0]);
 
+            Swal.fire({
+                title: 'Creating Bill',
+                text: 'Please wait...',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             $.ajax({
                 url: '../api/create_bill.php',
                 type: 'POST',
@@ -324,13 +329,28 @@ $page_title = "Payments & Bills Management";
                 contentType: false,
                 success: function(response) {
                     if (response.success) {
-                        location.reload();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Bill has been created successfully.',
+                            timer: 1500
+                        }).then(() => {
+                            location.reload();
+                        });
                     } else {
-                        alert('Error: ' + response.message);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message || 'An error occurred while creating the bill.'
+                        });
                     }
                 },
                 error: function() {
-                    alert('An error occurred while creating the bill.');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'An error occurred while creating the bill.'
+                    });
                 }
             });
         });
@@ -339,23 +359,83 @@ $page_title = "Payments & Bills Management";
         $('.mark-paid').click(function() {
             const billId = $(this).data('id');
 
-            if (confirm('Are you sure you want to mark this bill as paid?')) {
-                $.post('../api/mark_bill_paid.php', { bill_id: billId }, function(response) {
-                    if (response.success) {
-                        location.reload();
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
-                });
-            }
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'Do you want to mark this bill as paid?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, mark as paid',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Processing...',
+                        text: 'Please wait...',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        willOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    $.post('../api/mark_bill_paid.php', { bill_id: billId }, function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Bill has been marked as paid.',
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message || 'An error occurred while updating the bill.'
+                            });
+                        }
+                    }).fail(function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'An error occurred while updating the bill.'
+                        });
+                    });
+                }
+            });
         });
 
-        // Toggle sidebar
-        $("#sidebarToggleBtn").click(function(e) {
-            e.preventDefault();
-            $("#wrapper").toggleClass("toggled");
-            $("#sidebar-wrapper").toggleClass("toggled");
-            $("#content-wrapper").toggleClass("toggled");
+        // Add view bill handler
+        $('.view-bill').click(function() {
+            const billId = $(this).data('id');
+            Swal.fire({
+                title: 'Viewing Bill Details',
+                text: 'Loading...',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            // Add your view bill logic here
+        });
+
+        // Add edit bill handler
+        $('.edit-bill').click(function() {
+            const billId = $(this).data('id');
+            Swal.fire({
+                title: 'Edit Bill',
+                text: 'Loading bill details...',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            // Add your edit bill logic here
         });
     });
     </script>
