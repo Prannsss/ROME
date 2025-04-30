@@ -67,7 +67,7 @@
                 <?php endif; ?>
             </div>
         </div>
-        
+
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Upcoming Pre-Registered Visitors</h6>
@@ -119,7 +119,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-lg-4">
         <div class="card shadow mb-4">
             <div class="card-header py-3">
@@ -145,7 +145,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Visitor Rules</h6>
@@ -170,7 +170,7 @@
                 </ul>
             </div>
         </div>
-        
+
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
@@ -201,53 +201,55 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form>
+                <form id="addVisitorForm">
                     <div class="form-group">
                         <label>Visitor Name</label>
-                        <input type="text" class="form-control" placeholder="Enter visitor's full name" required>
+                        <input type="text" class="form-control" name="visitor_name" required>
                     </div>
                     <div class="form-group">
                         <label>Purpose of Visit</label>
-                        <select class="form-control" required>
+                        <select class="form-control" name="purpose" required>
                             <option value="">Select Purpose</option>
-                            <option>Family Visit</option>
-                            <option>Friend Visit</option>
-                            <option>Maintenance</option>
-                            <option>Delivery</option>
-                            <option>Other</option>
+                            <option value="Family Visit">Family Visit</option>
+                            <option value="Friend Visit">Friend Visit</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Delivery">Delivery</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>ID Type</label>
-                        <select class="form-control" required>
+                        <select class="form-control" name="id_type" required>
                             <option value="">Select ID Type</option>
-                            <option>Driver's License</option>
-                            <option>Passport</option>
-                            <option>Government ID</option>
-                            <option>Other</option>
+                            <option value="Driver's License">Driver's License</option>
+                            <option value="Passport">Passport</option>
+                            <option value="Employee ID">Employee ID</option>
+                            <option value="Government ID">Government ID</option>
+                            <option value="Company ID">Company ID</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>ID Number</label>
-                        <input type="text" class="form-control" placeholder="Enter ID number" required>
+                        <input type="text" class="form-control" name="id_number" required>
                     </div>
                     <div class="form-group">
                         <label>Contact Number</label>
-                        <input type="tel" class="form-control" placeholder="Enter contact number">
+                        <input type="tel" class="form-control" name="contact_number">
                     </div>
                     <div class="form-group">
                         <label>Vehicle Information (if applicable)</label>
-                        <input type="text" class="form-control" placeholder="Enter vehicle details">
+                        <input type="text" class="form-control" name="vehicle_info">
                     </div>
                     <div class="form-group">
                         <label>Notes</label>
-                        <textarea class="form-control" rows="3" placeholder="Any additional information"></textarea>
+                        <textarea class="form-control" name="notes" rows="3"></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary">Check In Visitor</button>
+                <button type="button" class="btn btn-primary" id="submitVisitor">Check In Visitor</button>
             </div>
         </div>
     </div>
@@ -310,6 +312,9 @@
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 // Chart for visitor statistics
 document.addEventListener('DOMContentLoaded', function() {
@@ -349,12 +354,48 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Function to check out a visitor
 function checkoutVisitor(visitorId) {
-    if (confirm('Are you sure you want to check out this visitor?')) {
-        // AJAX call to check out visitor
-        console.log('Checking out visitor ID: ' + visitorId);
-        // After successful checkout, reload the page
-        // window.location.reload();
-    }
+    Swal.fire({
+        title: 'Check Out Visitor',
+        text: 'Are you sure you want to check out this visitor?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, check out'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '/ROME/api/checkout_visitor.php',
+                type: 'POST',
+                data: { visitor_id: visitorId },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: response.message || 'Visitor checked out successfully!'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message || 'Failed to check out visitor.'
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'An error occurred while processing the request.'
+                    });
+                }
+            });
+        }
+    });
 }
 
 // Function to view visitor details
@@ -362,4 +403,67 @@ function viewVisitor(visitorId) {
     console.log('Viewing visitor ID: ' + visitorId);
     // Show visitor details modal or redirect to visitor details page
 }
+
+// Updated $(document).ready function
+$(document).ready(function() {
+    $('#submitVisitor').on('click', function(e) {
+        e.preventDefault();
+
+        // Get the form
+        var form = $('#addVisitorForm');
+
+        // Basic validation
+        if (!form[0].checkValidity()) {
+            form[0].reportValidity();
+            return;
+        }
+
+        // Disable submit button and show loading state
+        var submitBtn = $(this);
+        submitBtn.prop('disabled', true);
+        submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+
+        // Get form data
+        var formData = form.serialize();
+
+        // Make AJAX request
+        $.ajax({
+            url: '/ROME/api/add_visitor.php',
+            type: 'POST',
+            data: formData,
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success' || response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: response.message || 'Visitor checked in successfully!'
+                    }).then(() => {
+                        $('#addVisitorModal').modal('hide');
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Failed to check in visitor.'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while processing the request.'
+                });
+            },
+            complete: function() {
+                // Re-enable submit button
+                submitBtn.prop('disabled', false);
+                submitBtn.html('Check In Visitor');
+            }
+        });
+    });
+});
 </script>

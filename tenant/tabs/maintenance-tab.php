@@ -14,25 +14,29 @@ $tenant_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
 try {
     // Use standardized connection
     $db = getDbConnection();
-    
+
     if (!$db) {
         throw new Exception("Database connection failed");
     }
-    
+
     // Fetch maintenance requests for this tenant - FIXED: changed tenant_id to user_id
     $stmt = $db->prepare("
-        SELECT * FROM maintenance_requests 
-        WHERE user_id = :tenant_id 
+        SELECT * FROM maintenance_requests
+        WHERE user_id = :tenant_id
         ORDER BY created_at DESC
     ");
     $stmt->execute([':tenant_id' => $tenant_id]);
     $maintenance_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
 } catch (Exception $e) {
     $error_message = "Database error: " . $e->getMessage();
     $maintenance_requests = []; // Initialize as empty array to prevent undefined variable errors
 }
 ?>
+
+<!-- Add required scripts first -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <!-- Maintenance Requests Content -->
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
@@ -53,7 +57,7 @@ try {
                     <div class="alert alert-danger"><?php echo $error_message; ?></div>
                 <?php elseif (isset($maintenance_requests) && count($maintenance_requests) > 0): ?>
                     <div class="table-responsive">
-                        <table class="table table-bordered" width="100%" cellspacing="0">
+                        <table class="table table-bordered" id="requestsTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
                                     <th>Issue Type</th>
@@ -116,7 +120,7 @@ try {
             </div>
         </div>
     </div>
-    
+
     <div class="col-lg-4">
         <div class="card shadow mb-4">
             <div class="card-header py-3">
@@ -125,23 +129,23 @@ try {
             <div class="card-body">
                 <div class="mb-4">
                     <div class="small font-weight-bold">Pending <span class="float-right">
-                        <?php 
+                        <?php
                         $pending_count = 0;
                         $in_progress_count = 0;
                         $completed_count = 0;
-                        
+
                         if (isset($maintenance_requests)) {
                             foreach ($maintenance_requests as $request) {
                                 if ($request['status'] == 'pending') $pending_count++;
                                 if ($request['status'] == 'in_progress') $in_progress_count++;
                                 if ($request['status'] == 'completed') $completed_count++;
                             }
-                            
+
                             $total_count = count($maintenance_requests);
                             $pending_percent = $total_count > 0 ? round(($pending_count / $total_count) * 100) : 0;
                             $in_progress_percent = $total_count > 0 ? round(($in_progress_count / $total_count) * 100) : 0;
                             $completed_percent = $total_count > 0 ? round(($completed_count / $total_count) * 100) : 0;
-                            
+
                             echo $pending_count;
                         }
                         ?>
@@ -177,10 +181,10 @@ try {
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="maintenanceRequestForm" action="../api/maintenance_request.php" method="post" enctype="multipart/form-data">
+            <form id="maintenanceRequestForm" enctype="multipart/form-data">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="issueType">Issue Type</label>
+                        <label for="issueType">Issue Type*</label>
                         <select class="form-control" id="issueType" name="issue_type" required>
                             <option value="">Select Issue Type</option>
                             <option value="Plumbing">Plumbing</option>
@@ -193,7 +197,7 @@ try {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="description">Description</label>
+                        <label for="description">Description*</label>
                         <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
                     </div>
                     <div class="form-group">
@@ -209,7 +213,6 @@ try {
                         <label for="photo">Photo (Optional)</label>
                         <input type="file" class="form-control-file" id="photo" name="photo" accept="image/*">
                     </div>
-                    <input type="hidden" name="tenant_id" value="<?php echo $tenant_id; ?>">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
@@ -249,7 +252,7 @@ try {
 function viewRequest(requestId) {
     // Show modal with loading spinner
     $('#viewRequestModal').modal('show');
-    
+
     // Fetch request details via AJAX
     fetch(`../api/index.php?endpoint=maintenance&id=${requestId}`)
         .then(response => response.json())
@@ -257,7 +260,7 @@ function viewRequest(requestId) {
             if (data.status === 'success') {
                 const request = data.data;
                 let statusBadge = '';
-                
+
                 switch(request.status) {
                     case 'pending':
                         statusBadge = '<span class="badge badge-warning">Pending</span>';
@@ -274,7 +277,7 @@ function viewRequest(requestId) {
                     default:
                         statusBadge = '<span class="badge badge-secondary">Unknown</span>';
                 }
-                
+
                 let priorityBadge = '';
                 switch(request.priority) {
                     case 'low':
@@ -290,7 +293,7 @@ function viewRequest(requestId) {
                         priorityBadge = '<span class="badge badge-danger">Emergency</span>';
                         break;
                 }
-                
+
                 let html = `
                     <div class="row">
                         <div class="col-md-6">
@@ -311,14 +314,14 @@ function viewRequest(requestId) {
                         </div>
                     </div>
                 `;
-                
+
                 if (request.comments && request.comments.length > 0) {
                     html += `
                         <hr>
                         <h6>Comments</h6>
                         <div class="comments-section">
                     `;
-                    
+
                     request.comments.forEach(comment => {
                         html += `
                             <div class="comment mb-3">
@@ -332,10 +335,10 @@ function viewRequest(requestId) {
                             </div>
                         `;
                     });
-                    
+
                     html += `</div>`;
                 }
-                
+
                 // Add comment form if request is not completed or cancelled
                 if (request.status !== 'completed' && request.status !== 'cancelled') {
                     html += `
@@ -349,7 +352,7 @@ function viewRequest(requestId) {
                         </form>
                     `;
                 }
-                
+
                 document.getElementById('requestDetailsContent').innerHTML = html;
             } else {
                 document.getElementById('requestDetailsContent').innerHTML = `
@@ -374,7 +377,7 @@ function cancelRequest(requestId) {
         const formData = new FormData();
         formData.append('id', requestId);
         formData.append('action', 'cancel');
-        
+
         fetch('../api/index.php?endpoint=maintenance', {
             method: 'POST',
             body: formData
@@ -397,17 +400,17 @@ function cancelRequest(requestId) {
 
 function addComment(requestId) {
     const comment = document.getElementById('comment').value.trim();
-    
+
     if (!comment) {
         alert('Please enter a comment');
         return;
     }
-    
+
     const formData = new FormData();
     formData.append('request_id', requestId);
     formData.append('comment', comment);
     formData.append('action', 'add_comment');
-    
+
     fetch('../api/index.php?endpoint=maintenance', {
         method: 'POST',
         body: formData
@@ -426,4 +429,97 @@ function addComment(requestId) {
         alert('An error occurred. Please try again.');
     });
 }
+
+// Handle maintenance request form submission
+$(document).ready(function() {
+    // Check if DataTable already exists and destroy it if it does
+    if ($.fn.DataTable.isDataTable('#requestsTable')) {
+        $('#requestsTable').DataTable().destroy();
+    }
+
+    // Initialize DataTable
+    $('#requestsTable').DataTable({
+        order: [[4, 'desc']], // Sort by date column by default
+        pageLength: 10,
+        responsive: true,
+        language: {
+            search: "Search requests:",
+            lengthMenu: "Show _MENU_ entries",
+            info: "Showing _START_ to _END_ of _TOTAL_ requests",
+            emptyTable: "No maintenance requests found"
+        },
+        columnDefs: [
+            { orderable: false, targets: -1 } // Disable sorting on action column
+        ]
+    });
+
+    $('#maintenanceRequestForm').on('submit', function(e) {
+        e.preventDefault();
+
+        // Show loading state
+        Swal.fire({
+            title: 'Submitting...',
+            text: 'Please wait while we submit your request',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Get form data
+        var formData = new FormData(this);
+
+        // Submit request
+        $.ajax({
+            url: '/ROME/api/maintenance.php',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                try {
+                    // Ensure response is properly parsed
+                    if (typeof response === 'string') {
+                        response = JSON.parse(response);
+                    }
+
+                    if (response.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: response.message || 'Maintenance request submitted successfully!'
+                        }).then(() => {
+                            $('#newRequestModal').modal('hide');
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message || 'Failed to submit request'
+                        });
+                    }
+                } catch (e) {
+                    console.error('Response parsing error:', e);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Invalid response from server. Please try again.'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', error);
+                console.error('Response:', xhr.responseText);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to submit request. Please try again.'
+                });
+            }
+        });
+    });
+});
+</script>
 </script>

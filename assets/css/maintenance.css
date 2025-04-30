@@ -1,0 +1,46 @@
+.maintenance-stats {
+    margin-bottom: 2rem;
+}
+
+.badge {
+    font-size: 0.9rem;
+    padding: 0.5em 0.75em;
+}
+
+.badge-priority-high {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-priority-medium {
+    background-color: #ffc107;
+    color: black;
+}
+
+.badge-priority-low {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.status-pending {
+    background-color: #ffc107;
+    color: black;
+}
+
+.status-in-progress {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.status-completed {
+    background-color: #28a745;
+    color: white;
+}
+
+.table-responsive {
+    margin-top: 1rem;
+}
+
+.btn-action {
+    margin: 0 0.25rem;
+}

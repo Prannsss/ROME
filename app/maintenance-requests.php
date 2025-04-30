@@ -10,10 +10,20 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
 // Get maintenance requests with related information
 $stmt = $connect->prepare("
-    SELECT m.*, u.fullname as tenant_name, r.fullname as room_name
+    SELECT
+        m.*,
+        u.fullname as tenant_name,
+        r.fullname as room_name,
+        r.id as room_id,
+        m.issue_type,
+        m.description,
+        m.priority,
+        m.status,
+        m.created_at,
+        m.updated_at
     FROM maintenance_requests m
-    JOIN users u ON m.user_id = u.id
-    JOIN room_rental_registrations r ON m.room_id = r.id
+    LEFT JOIN users u ON m.user_id = u.id
+    LEFT JOIN room_rental_registrations r ON m.room_id = r.id
     ORDER BY m.created_at DESC
 ");
 $stmt->execute();
@@ -47,6 +57,7 @@ $page_title = "Maintenance Requests";
     <style>
         <?php include('../assets/css/tabs.css'); ?>
     </style>
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap4.min.css" rel="stylesheet">
     <link href="../assets/css/maintenance.css" rel="stylesheet">
 </head>
 <body>
@@ -191,7 +202,9 @@ $page_title = "Maintenance Requests";
                                             <th>ID</th>
                                             <th>Tenant</th>
                                             <th>Room</th>
-                                            <th>Issue</th>
+                                            <th>Issue Type</th>
+                                            <th>Description</th>
+                                            <th>Priority</th>
                                             <th>Status</th>
                                             <th>Date</th>
                                             <th>Actions</th>
@@ -201,25 +214,37 @@ $page_title = "Maintenance Requests";
                                         <?php foreach ($requests as $request): ?>
                                         <tr>
                                             <td><?php echo $request['id']; ?></td>
-                                            <td><?php echo htmlspecialchars($request['tenant_name']); ?></td>
-                                            <td><?php echo htmlspecialchars($request['room_name']); ?></td>
-                                            <td><?php echo htmlspecialchars($request['description']); ?></td>
+                                            <td><?php echo htmlspecialchars($request['tenant_name'] ?? 'N/A'); ?></td>
+                                            <td><?php echo htmlspecialchars($request['room_name'] ?? 'N/A'); ?></td>
+                                            <td><?php echo htmlspecialchars($request['issue_type']); ?></td>
+                                            <td><?php echo htmlspecialchars(substr($request['description'], 0, 50)) . (strlen($request['description']) > 50 ? '...' : ''); ?></td>
+                                            <td>
+                                                <span class="badge badge-<?php
+                                                    echo $request['priority'] == 'high' ? 'danger' :
+                                                        ($request['priority'] == 'medium' ? 'warning' : 'info');
+                                                ?>">
+                                                    <?php echo ucfirst($request['priority']); ?>
+                                                </span>
+                                            </td>
                                             <td>
                                                 <span class="badge badge-<?php
                                                     echo $request['status'] == 'completed' ? 'success' :
-                                                        ($request['status'] == 'in_progress' ? 'info' : 'warning');
+                                                        ($request['status'] == 'in_progress' ? 'info' :
+                                                        ($request['status'] == 'pending' ? 'warning' : 'secondary'));
                                                 ?>">
                                                     <?php echo ucfirst(str_replace('_', ' ', $request['status'])); ?>
                                                 </span>
                                             </td>
-                                            <td><?php echo date('M d, Y', strtotime($request['created_at'])); ?></td>
+                                            <td><?php echo date('M d, Y h:i A', strtotime($request['created_at'])); ?></td>
                                             <td>
-                                                <button class="btn btn-sm btn-info view-request" data-id="<?php echo $request['id']; ?>">
+                                                <button class="btn btn-sm btn-info view-request" data-id="<?php echo $request['id']; ?>" title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-primary update-status" data-id="<?php echo $request['id']; ?>">
+                                                <?php if ($request['status'] != 'completed'): ?>
+                                                <button class="btn btn-sm btn-primary update-status" data-id="<?php echo $request['id']; ?>" title="Update Status">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
@@ -236,8 +261,8 @@ $page_title = "Maintenance Requests";
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
 
     <script>
         $(document).ready(function() {
@@ -291,6 +316,127 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem('sidebarState',
             wrapper.classList.contains('toggled') ? 'collapsed' : 'expanded'
         );
+    });
+});
+</script>
+
+<script>
+$(document).ready(function() {
+    // Destroy existing DataTable if it exists
+    if ($.fn.DataTable.isDataTable('#requestsTable')) {
+        $('#requestsTable').DataTable().destroy();
+    }
+
+    // Initialize DataTable
+    const table = $('#requestsTable').DataTable({
+        pageLength: 10,
+        responsive: true,
+        order: [[4, 'desc']], // Sort by date column
+        language: {
+            emptyTable: "No maintenance requests found",
+            zeroRecords: "No matching requests found"
+        },
+        columnDefs: [
+            {
+                targets: -1,
+                orderable: false,
+                searchable: false
+            }
+        ]
+    });
+
+    // View Request Details
+    $('.view-request').on('click', function() {
+        const requestId = $(this).data('id');
+        // Show modal with loading state
+        Swal.fire({
+            title: 'Loading...',
+            text: 'Please wait while we fetch the request details',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Fetch request details
+        $.ajax({
+            url: '/ROME/api/maintenance.php',
+            type: 'GET',
+            data: { action: 'view', id: requestId },
+            success: function(response) {
+                if (response.status === 'success') {
+                    const request = response.data;
+                    Swal.fire({
+                        title: 'Maintenance Request Details',
+                        html: `
+                            <div class="text-left">
+                                <p><strong>Tenant:</strong> ${request.tenant_name}</p>
+                                <p><strong>Room:</strong> ${request.room_name}</p>
+                                <p><strong>Issue Type:</strong> ${request.issue_type}</p>
+                                <p><strong>Description:</strong> ${request.description}</p>
+                                <p><strong>Priority:</strong> ${request.priority}</p>
+                                <p><strong>Status:</strong> ${request.status}</p>
+                                <p><strong>Created:</strong> ${new Date(request.created_at).toLocaleString()}</p>
+                                ${request.photo ? `<img src="${request.photo}" class="img-fluid mt-3" alt="Issue Photo">` : ''}
+                            </div>
+                        `,
+                        width: '600px'
+                    });
+                } else {
+                    Swal.fire('Error', response.message || 'Failed to fetch request details', 'error');
+                }
+            },
+            error: function() {
+                Swal.fire('Error', 'Failed to fetch request details', 'error');
+            }
+        });
+    });
+
+    // Update Request Status
+    $('.update-status').on('click', function() {
+        const requestId = $(this).data('id');
+        Swal.fire({
+            title: 'Update Request Status',
+            input: 'select',
+            inputOptions: {
+                'pending': 'Pending',
+                'in_progress': 'In Progress',
+                'completed': 'Completed'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Update',
+            showLoaderOnConfirm: true,
+            preConfirm: (status) => {
+                return $.ajax({
+                    url: '/ROME/api/maintenance.php',
+                    type: 'POST',
+                    data: {
+                        action: 'update_status',
+                        id: requestId,
+                        status: status
+                    }
+                }).then(response => {
+                    if (response.status === 'success') {
+                        return response;
+                    }
+                    throw new Error(response.message || 'Failed to update status');
+                }).catch(error => {
+                    Swal.showValidationMessage(error.message);
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: 'Request status updated successfully'
+                }).then(() => {
+                    location.reload();
+                });
+            }
+        });
     });
 });
 </script>

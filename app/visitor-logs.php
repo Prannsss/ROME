@@ -10,11 +10,15 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
 // Get visitor logs with related information
 $stmt = $connect->prepare("
-    SELECT v.*, u.fullname as tenant_name, r.fullname as room_name
+    SELECT
+        v.*,
+        u.fullname as tenant_name,
+        r.fullname as room_name,
+        r.id as room_id
     FROM visitor_logs v
-    JOIN users u ON v.user_id = u.id  /* Changed from tenant_id to user_id */
-    JOIN room_rental_registrations r ON v.room_id = r.id
-    ORDER BY v.check_in DESC  /* Changed from check_in_time to check_in */
+    LEFT JOIN users u ON v.user_id = u.id
+    LEFT JOIN room_rental_registrations r ON v.room_id = r.id
+    ORDER BY v.check_in DESC
 ");
 $stmt->execute();
 $visitors = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -46,6 +50,23 @@ $page_title = "Visitor Logs";
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <style>
         <?php include('../assets/css/tabs.css'); ?>
+
+        /* Add these styles */
+        .dataTables_length {
+            margin-bottom: 1rem;
+        }
+
+        .dataTables_length label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dataTables_length select {
+            width: auto;
+            display: inline-block;
+            margin: 0 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -85,9 +106,6 @@ $page_title = "Visitor Logs";
                     <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class="h3 mb-0 text-gray-800"><?php echo $page_title; ?></h1>
-                        <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm" data-toggle="modal" data-target="#addVisitorModal">
-                            <i class="fas fa-plus fa-sm text-white-50"></i> Register New Visitor
-                        </a>
                     </div>
 
                     <!-- Statistics Cards Row -->
@@ -163,7 +181,7 @@ $page_title = "Visitor Logs";
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-bordered visitor-table" id="visitorTable" width="100%" cellspacing="0">
+                                <table class="table table-bordered" id="visitorTable" width="100%" cellspacing="0">
                                     <thead>
                                         <tr>
                                             <th>Visitor Name</th>
@@ -183,33 +201,30 @@ $page_title = "Visitor Logs";
                                             <td><?php echo htmlspecialchars($visitor['tenant_name']); ?></td>
                                             <td><?php echo htmlspecialchars($visitor['room_name']); ?></td>
                                             <td><?php echo htmlspecialchars($visitor['purpose']); ?></td>
+                                            <td><?php echo date('M d, Y h:i A', strtotime($visitor['check_in'])); ?></td>
                                             <td>
-                                                <span class="time-badge">
-                                                    <?php echo date('M d, Y h:i A', strtotime($visitor['check_in_time'])); ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <?php if ($visitor['check_out_time']): ?>
-                                                    <span class="time-badge">
-                                                        <?php echo date('M d, Y h:i A', strtotime($visitor['check_out_time'])); ?>
-                                                    </span>
+                                                <?php if ($visitor['check_out']): ?>
+                                                    <?php echo date('M d, Y h:i A', strtotime($visitor['check_out'])); ?>
                                                 <?php else: ?>
                                                     <span class="badge badge-warning">Not checked out</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
-                                                <?php if (!$visitor['check_out_time']): ?>
+                                                <?php if (!$visitor['check_out']): ?>
                                                     <span class="badge badge-success">Active</span>
                                                 <?php else: ?>
                                                     <span class="badge badge-secondary">Completed</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
-                                                <?php if (!$visitor['check_out_time']): ?>
-                                                    <button class="btn btn-sm btn-success checkout-visitor" data-id="<?php echo $visitor['id']; ?>">
-                                                        <i class="fas fa-sign-out-alt"></i> Check Out
-                                                    </button>
+                                                <?php if (!$visitor['check_out']): ?>
+                                                <button class="btn btn-sm btn-success checkout-visitor" data-id="<?php echo $visitor['id']; ?>">
+                                                    <i class="fas fa-sign-out-alt"></i> Check Out
+                                                </button>
                                                 <?php endif; ?>
+                                                <button class="btn btn-sm btn-info view-visitor" data-id="<?php echo $visitor['id']; ?>">
+                                                    <i class="fas fa-eye"></i> View
+                                                </button>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
@@ -228,12 +243,20 @@ $page_title = "Visitor Logs";
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         $(document).ready(function() {
             // Initialize DataTable
             $('#visitorTable').DataTable({
-                order: [[4, 'desc']]
+                order: [[4, 'desc']],
+                pageLength: 10,
+                responsive: true,
+                searching: false,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]], // Add this line
+                language: {                                          // Add this section
+                    lengthMenu: "Show _MENU_ entries per page",
+                }
             });
 
             // Toggle sidebar
@@ -243,17 +266,51 @@ $page_title = "Visitor Logs";
             });
 
             // Handle visitor checkout
-            $('.checkout-visitor').click(function() {
+            $('.checkout-visitor').on('click', function() {
                 const visitorId = $(this).data('id');
-                if (confirm('Are you sure you want to check out this visitor?')) {
-                    $.post('../api/checkout_visitor.php', { visitor_id: visitorId }, function(response) {
-                        if (response.success) {
-                            location.reload();
-                        } else {
-                            alert('Error: ' + response.message);
-                        }
-                    });
-                }
+
+                Swal.fire({
+                    title: 'Check Out Visitor',
+                    text: 'Are you sure you want to check out this visitor?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, check out'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '../api/checkout_visitor.php',
+                            type: 'POST',
+                            data: { visitor_id: visitorId },
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Success',
+                                        text: response.message || 'Visitor checked out successfully!'
+                                    }).then(() => {
+                                        location.reload();
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: response.message || 'Failed to check out visitor.'
+                                    });
+                                }
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'An error occurred while processing the request.'
+                                });
+                            }
+                        });
+                    }
+                });
             });
         });
     </script>

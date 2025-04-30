@@ -191,7 +191,7 @@ $page_title = "Payments & Bills Management";
                                             <td><?php echo $bill['id']; ?></td>
                                             <td><?php echo htmlspecialchars($bill['tenant_name']); ?></td>
                                             <td><?php echo htmlspecialchars($bill['room_name']); ?></td>
-                                            <td>$<?php echo number_format($bill['amount'], 2); ?></td>
+                                            <td>₱<?php echo number_format($bill['amount'], 2); ?></td>
                                             <td><?php echo htmlspecialchars($bill['description']); ?></td>
                                             <td><?php echo date('M d, Y', strtotime($bill['due_date'])); ?></td>
                                             <td>
