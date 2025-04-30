@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 28, 2025 at 10:18 AM
+-- Generation Time: Apr 30, 2025 at 04:17 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -46,7 +46,8 @@ CREATE TABLE `bills` (
 INSERT INTO `bills` (`id`, `user_id`, `room_id`, `amount`, `description`, `due_date`, `status`, `created_at`, `updated_at`) VALUES
 (1, 2, 13, 3500.00, 'Monthly Rent - January 2023', '2023-01-05', 'paid', '2025-04-14 00:14:23', '2025-04-14 00:14:23'),
 (2, 2, 13, 3500.00, 'Monthly Rent - February 2023', '2023-02-05', 'paid', '2025-04-14 00:14:23', '2025-04-14 00:14:23'),
-(3, 2, 13, 3500.00, 'Monthly Rent - March 2023', '2023-03-05', 'unpaid', '2025-04-14 00:14:23', '2025-04-14 00:14:23');
+(3, 2, 13, 3500.00, 'Monthly Rent - March 2023', '2023-03-05', 'unpaid', '2025-04-14 00:14:23', '2025-04-14 00:14:23'),
+(0, 11, 25, 3500.00, 'Initial Rent Payment for Reservation #1', '2025-04-29', 'unpaid', '2025-04-30 01:08:38', '2025-04-30 01:08:38');
 
 -- --------------------------------------------------------
 
@@ -194,6 +195,13 @@ CREATE TABLE `reservations` (
   `updated_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `reservations`
+--
+
+INSERT INTO `reservations` (`id`, `user_id`, `room_id`, `check_in_date`, `check_out_date`, `status`, `created_at`, `updated_at`) VALUES
+(1, 11, 25, '2025-04-29', '2025-04-29', 'approved', '2025-04-29 05:11:44', '2025-04-30 01:08:38');
+
 -- --------------------------------------------------------
 
 --
@@ -301,7 +309,9 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `fullname`, `mobile`, `username`, `email`, `address`, `image`, `password`, `created_at`, `updated_at`, `role`, `status`) VALUES
 (11, 'Testing Tenant', '9876543211', 'tenant', 'tenant@rome.com', 'Cebu City', '/ROME/uploads/profile_pictures/user_11_1745637368.jpg', '0192023a7bbd73250516f069df18b500', '2025-04-14 08:14:23', '2025-04-14 08:14:23', 'tenant', 1),
-(10, 'Administrator', '9876543210', 'admin', 'admin@rome.com', NULL, NULL, '0192023a7bbd73250516f069df18b500', '2025-04-14 07:36:27', '2025-04-14 07:36:27', 'admin', 1);
+(10, 'Administrator', '9876543210', 'admin', 'admin@rome.com', NULL, NULL, '0192023a7bbd73250516f069df18b500', '2025-04-14 07:36:27', '2025-04-14 07:36:27', 'admin', 1),
+(13, 'kim', '0941526378', 'kim', 'kim@rome.com', NULL, NULL, '202cb962ac59075b964b07152d234b70', '2025-04-30 02:07:42', '2025-04-30 02:07:42', 'tenant', 1),
+(14, 'Davis', '0952146378', 'Davis', 'davis@rome.com', NULL, NULL, '202cb962ac59075b964b07152d234b70', '2025-04-30 02:16:57', '2025-04-30 02:16:57', 'tenant', 1);
 
 -- --------------------------------------------------------
 
@@ -459,7 +469,7 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `reservations`
 --
 ALTER TABLE `reservations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `room_rental_registrations`
@@ -483,7 +493,7 @@ ALTER TABLE `tenant_info`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `visitor_logs`

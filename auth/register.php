@@ -12,13 +12,15 @@
 		$fullname = $_POST['fullname'];
 
 		try {
-			$stmt = $connect->prepare('INSERT INTO users (fullname, mobile, username, email, password) VALUES (:fullname, :mobile, :username, :email, :password)');
+			// Modified query to include the role column
+			$stmt = $connect->prepare('INSERT INTO users (fullname, mobile, username, email, password, role) VALUES (:fullname, :mobile, :username, :email, :password, :role)');
 			$stmt->execute(array(
 				':fullname' => $fullname,
 				':username' => $username,
 				':password' => md5($password),
 				':email' => $email,
 				':mobile' => $mobile,
+				':role' => 'tenant' // Set role as tenant
 				));
 			header('Location: register.php?action=joined');
 			exit;
@@ -42,13 +44,13 @@
         <h1>Create Account</h1>
         <p>Join ROME and get started today</p>
     </div>
-    
+
     <div class="register-card">
         <!-- Logo inside the register card at the top -->
         <div class="logo-container">
             <img src="../assets/img/rome-logo.png" alt="ROME Logo" class="rome-logo">
         </div>
-        
+
         <?php
             if(isset($errMsg)){
                 echo '<div class="register-success">'.$errMsg.'</div>';
@@ -73,7 +75,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
@@ -92,24 +94,24 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <div class="input-with-icon">
                     <i class="fa fa-lock"></i>
                     <input type="password" class="form-control" id="password" placeholder="Password" name="password" required>
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <div class="input-with-icon">
                     <i class="fa fa-lock"></i>
                     <input type="password" class="form-control" id="c_password" placeholder="Confirm Password" name="c_password" required>
                 </div>
             </div>
-            
+
             <button type="submit" class="btn btn-primary btn-block" name='register' value="register">Create Account</button>
         </form>
-        
+
         <div class="login-cta">
             <p>Already have an account? <a href="login.php">Login</a></p>
         </div>
@@ -122,7 +124,7 @@
         background-color: #f8f9fa;
         font-family: 'Roboto', sans-serif;
     }
-    
+
     /* Logo styling */
     .logo-container {
         text-align: center;
@@ -130,35 +132,35 @@
         padding-bottom: 20px;
         border-bottom: 1px solid #e9ecef;
     }
-    
+
     .rome-logo {
         max-width: 180px;
         height: auto;
     }
-    
+
     .register-container {
         max-width: 650px;
         margin: 60px auto;
         padding: 0 20px;
     }
-    
+
     .register-header {
         text-align: center;
         margin-bottom: 30px;
     }
-    
+
     .register-header h1 {
         font-weight: 700;
         color: #212529;
         margin-bottom: 10px;
         font-size: 32px;
     }
-    
+
     .register-header p {
         color: #6c757d;
         font-size: 16px;
     }
-    
+
     .back-link {
         display: block;
         margin-bottom: 20px;
@@ -167,18 +169,18 @@
         font-size: 14px;
         text-align: left;
     }
-    
+
     .back-link:hover {
         color: #0066CC;
     }
-    
+
     .register-card {
         background: white;
         border-radius: 8px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         padding: 30px;
     }
-    
+
     .register-success {
         background-color: #d4edda;
         color: #155724;
@@ -187,29 +189,29 @@
         margin-bottom: 20px;
         text-align: center;
     }
-    
+
     .form-group {
         margin-bottom: 20px;
     }
-    
+
     .input-with-icon {
         position: relative;
     }
-    
+
     .input-with-icon i {
         position: absolute;
         left: 12px;
         top: 12px;
         color: #adb5bd;
     }
-    
+
     .input-with-icon input {
         padding-left: 35px;
         height: 45px;
         border-radius: 4px;
         border: 1px solid #ced4da;
     }
-    
+
     .btn-primary {
         background-color: #1E90FF;
         border-color: #1E90FF;
@@ -218,29 +220,29 @@
         font-size: 16px;
         margin-top: 10px;
     }
-    
+
     .btn-primary:hover {
         background-color: #0066CC;
         border-color: #0066CC;
     }
-    
+
     .login-cta {
         text-align: center;
         margin-top: 25px;
         padding-top: 20px;
         border-top: 1px solid #e9ecef;
     }
-    
+
     .login-cta p {
         color: #6c757d;
     }
-    
+
     .login-cta a {
         color: #1E90FF;
         font-weight: 500;
         text-decoration: none;
     }
-    
+
     .login-cta a:hover {
         color: #0066CC;
         text-decoration: underline;
