@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 30, 2025 at 04:17 AM
+-- Generation Time: Apr 30, 2025 at 07:13 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -47,7 +47,7 @@ INSERT INTO `bills` (`id`, `user_id`, `room_id`, `amount`, `description`, `due_d
 (1, 2, 13, 3500.00, 'Monthly Rent - January 2023', '2023-01-05', 'paid', '2025-04-14 00:14:23', '2025-04-14 00:14:23'),
 (2, 2, 13, 3500.00, 'Monthly Rent - February 2023', '2023-02-05', 'paid', '2025-04-14 00:14:23', '2025-04-14 00:14:23'),
 (3, 2, 13, 3500.00, 'Monthly Rent - March 2023', '2023-03-05', 'unpaid', '2025-04-14 00:14:23', '2025-04-14 00:14:23'),
-(4, 11, 25, 3500.00, 'Initial Rent Payment for Reservation #1', '2025-04-29', 'unpaid', '2025-04-30 01:08:38', '2025-04-30 01:08:38');
+(4, 11, 25, 3500.00, 'Initial Rent Payment for Reservation #1', '2025-04-29', 'paid', '2025-04-30 01:08:38', '2025-04-30 04:43:14');
 
 -- --------------------------------------------------------
 
@@ -74,16 +74,9 @@ CREATE TABLE `current_rentals` (
 -- Dumping data for table `current_rentals`
 --
 
-INSERT INTO `current_rentals` (`id`, `user_id`, `room_id`, `room_name`, `room_type`, `start_date`, `end_date`, `monthly_rent`, `status`, `created_at`, `updated_at`) VALUES
-(1, 2, 13, 'Cozy Room 1', 'Economy', '2023-01-01', '2023-12-31', 3500.00, 'active', '2025-04-14 08:14:23', '2025-04-14 08:14:23');
-
---
--- Update security deposit for current rentals
---
-
-UPDATE `current_rentals`
-SET `security_deposit` = monthly_rent
-WHERE `security_deposit` IS NULL OR `security_deposit` = 0;
+INSERT INTO `current_rentals` (`id`, `user_id`, `room_id`, `room_name`, `room_type`, `start_date`, `end_date`, `monthly_rent`, `security_deposit`, `status`, `created_at`, `updated_at`) VALUES
+(1, 2, 13, 'Cozy Room 1', 'Economy', '2023-01-01', '2023-12-31', 3500.00, 3500.00, 'active', '2025-04-14 08:14:23', '2025-04-14 08:14:23'),
+(2, 11, 25, '', '', '2025-04-30', '2026-04-30', 0.00, 0.00, 'active', '2025-04-30 03:53:31', '2025-04-30 03:53:31');
 
 -- --------------------------------------------------------
 
@@ -177,6 +170,7 @@ INSERT INTO `maintenance_requests` (`id`, `user_id`, `room_id`, `issue_type`, `d
 
 CREATE TABLE `payments` (
   `id` int(10) UNSIGNED NOT NULL,
+  `bill_id` int(10) UNSIGNED NOT NULL,
   `user_id` int(10) UNSIGNED NOT NULL,
   `room_id` int(10) UNSIGNED NOT NULL,
   `amount` decimal(10,2) NOT NULL,
@@ -187,9 +181,13 @@ CREATE TABLE `payments` (
   `updated_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-ALTER TABLE `payments`
-ADD COLUMN `bill_id` int(10) UNSIGNED NOT NULL AFTER `id`,
-ADD KEY `bill_id` (`bill_id`);
+--
+-- Dumping data for table `payments`
+--
+
+INSERT INTO `payments` (`id`, `bill_id`, `user_id`, `room_id`, `amount`, `payment_date`, `payment_method`, `status`, `created_at`, `updated_at`) VALUES
+(1, 4, 11, 25, 3500.00, '2025-04-30', 'cash', 'completed', '2025-04-30 03:53:31', '2025-04-30 03:53:31'),
+(2, 0, 11, 25, 3500.00, '2025-04-30', 'cash', 'completed', '2025-04-30 04:26:52', '2025-04-30 04:26:52');
 
 -- --------------------------------------------------------
 
@@ -213,7 +211,7 @@ CREATE TABLE `reservations` (
 --
 
 INSERT INTO `reservations` (`id`, `user_id`, `room_id`, `check_in_date`, `check_out_date`, `status`, `created_at`, `updated_at`) VALUES
-(1, 11, 25, '2025-04-29', '2025-04-29', 'approved', '2025-04-29 05:11:44', '2025-04-30 01:08:38');
+(1, 11, 25, '2025-04-29', '2025-04-29', '', '2025-04-29 05:11:44', '2025-04-30 01:08:38');
 
 -- --------------------------------------------------------
 
@@ -262,7 +260,7 @@ INSERT INTO `room_rental_registrations` (`id`, `fullname`, `mobile`, `alternat_m
 (22, 'Kenshee', '097845168455', '09845166566', 'knshee@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'IT PARK', '4999', '300000000', '2599', '9', '10', 'Cebu City', 'Wi-Fi, CR, Balcony', 'jajajja', '[\"uploads\\/680f0a9032ea9_luxuryapt.jpg\",\"uploads\\/680f0a90339eb_homeapt.jpg\"]', NULL, NULL, 1, '2025-04-28 05:13:33', '2025-04-28 05:13:33', NULL),
 (23, 'Bench', '095421658842', '095665819235', 'bnch@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'IT PARK', '6999', '4000000000', '3000', '8', '10', 'Cebu City', 'Wi-Fi, CR, Balcony', 'tralaleo tralala', '[\"uploads\\/680f0a9032ea9_luxuryapt.jpg\",\"uploads\\/680f0a90339eb_homeapt.jpg\"]', NULL, NULL, 1, '2025-04-28 05:20:07', '2025-04-28 05:20:07', NULL),
 (24, 'Davis', '094545545665', '0955442255', 'dvs@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Bus station', '2999', '100000000', '1500', '1', '10', 'Apas', 'Wi-Fi, CR, Balcony', 'lllll', '[\"uploads\\/680f128ae3a0d_homeapt.jpg\",\"uploads\\/680f0a9032ea9_luxuryapt.jpg\"]', NULL, NULL, 1, '2025-04-28 05:30:50', '2025-04-28 05:30:50', NULL),
-(25, 'Kurt', '094512362514', '092514362514', 'krt@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Cebu', '3500', '4000000000', '1500', '2', '20', 'Cebu', 'Wi-Fi, CR, Balcony', 'er', '[\"uploads\\/680f14217b770_kag.png\",\"uploads\\/680f14217b9d4_kag1.jpg\"]', NULL, NULL, 1, '2025-04-28 05:37:37', '2025-04-28 05:37:37', NULL);
+(25, 'Kurt', '094512362514', '092514362514', 'krt@gmail.com', 'Philippines', 'Cebu', 'Cebu City', 'Cebu', '3500', '4000000000', '1500', '2', '20', 'Cebu', 'Wi-Fi, CR, Balcony', 'er', '[\"uploads\\/680f14217b770_kag.png\",\"uploads\\/680f14217b9d4_kag1.jpg\"]', NULL, NULL, 0, '2025-04-28 05:37:37', '2025-04-28 05:37:37', NULL);
 
 -- --------------------------------------------------------
 
@@ -321,7 +319,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `fullname`, `mobile`, `username`, `email`, `address`, `image`, `password`, `created_at`, `updated_at`, `role`, `status`) VALUES
-(11, 'Testing Tenant', '9876543211', 'tenant', 'tenant@rome.com', 'Cebu City', '/ROME/uploads/profile_pictures/user_11_1745637368.jpg', '0192023a7bbd73250516f069df18b500', '2025-04-14 08:14:23', '2025-04-14 08:14:23', 'tenant', 1),
+(11, 'Testing Tenant', '9876543211', 'tenant', 'tenant@rome.com', 'Cebu City', '/ROME/uploads/profile_pictures/user_11_1745989703.jpeg', '0192023a7bbd73250516f069df18b500', '2025-04-14 08:14:23', '2025-04-14 08:14:23', 'tenant', 1),
 (10, 'Administrator', '9876543210', 'admin', 'admin@rome.com', NULL, NULL, '0192023a7bbd73250516f069df18b500', '2025-04-14 07:36:27', '2025-04-14 07:36:27', 'admin', 1),
 (13, 'kim', '0941526378', 'kim', 'kim@rome.com', NULL, NULL, '202cb962ac59075b964b07152d234b70', '2025-04-30 02:07:42', '2025-04-30 02:07:42', 'tenant', 1),
 (14, 'Davis', '0952146378', 'Davis', 'davis@rome.com', NULL, NULL, '202cb962ac59075b964b07152d234b70', '2025-04-30 02:16:57', '2025-04-30 02:16:57', 'tenant', 1);
@@ -356,6 +354,12 @@ INSERT INTO `visitor_logs` (`id`, `user_id`, `room_id`, `visitor_name`, `visitor
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `bills`
+--
+ALTER TABLE `bills`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `current_rentals`
@@ -393,7 +397,8 @@ ALTER TABLE `maintenance_requests`
 -- Indexes for table `payments`
 --
 ALTER TABLE `payments`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `bill_id` (`bill_id`);
 
 --
 -- Indexes for table `reservations`
@@ -443,10 +448,16 @@ ALTER TABLE `visitor_logs`
 --
 
 --
+-- AUTO_INCREMENT for table `bills`
+--
+ALTER TABLE `bills`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT for table `current_rentals`
 --
 ALTER TABLE `current_rentals`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `featured_properties`
@@ -476,7 +487,7 @@ ALTER TABLE `maintenance_requests`
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `reservations`
@@ -513,20 +524,8 @@ ALTER TABLE `users`
 --
 ALTER TABLE `visitor_logs`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+COMMIT;
 
---
--- AUTO_INCREMENT for table `bills`
---
-ALTER TABLE `bills`
-  MODIFY COLUMN `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY;
-
---
--- Update the existing bill with ID 0 to have a proper ID
---
-UPDATE `bills` SET `id` = 4 WHERE `id` = 0;
-
-ALTER TABLE `current_rentals`
-ADD COLUMN `security_deposit` decimal(10,2) DEFAULT 0.00R_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-AFTER `monthly_rent`;/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-1 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-COMMIT;/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
