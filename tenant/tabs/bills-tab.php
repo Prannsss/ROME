@@ -2,6 +2,10 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <?php
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/includes/db_connection.php');
 // Add this function at the top of the file, after your initial includes
 function generateMonthlyBills($db, $user_id) {
     try {
@@ -125,7 +129,7 @@ try {
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
     <h1 class="h3 mb-0 text-gray-800">Bills & Payments</h1>
     <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
-        <i class="fas fa-download fa-sm text-white-50"></i> Download Statement
+        <i class="fas fa-download fa-sm text-white-50"></i> Download Invoice
     </a>
 </div>
 

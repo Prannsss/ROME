@@ -4,10 +4,11 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/ROME/config/config.php');
 // Fetch room details including rent
 if (isset($current_rental['room_id'])) {
     try {
-        $stmt = $connect->prepare('SELECT rent FROM room_rental_registrations WHERE id = :room_id');
+        $stmt = $connect->prepare('SELECT rent, image AS room_image FROM room_rental_registrations WHERE id = :room_id');
         $stmt->execute(['room_id' => $current_rental['room_id']]);
         $room_details = $stmt->fetch(PDO::FETCH_ASSOC);
         $monthly_rent = $room_details['rent'] ?? $current_rental['monthly_rent'];
+        $current_rental['room_image'] = $room_details['room_image'] ?? ($current_rental['room_image'] ?? null);
     } catch(PDOException $e) {
         // Fallback to existing monthly_rent if query fails
         $monthly_rent = $current_rental['monthly_rent'];
