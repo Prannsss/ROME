@@ -259,11 +259,11 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
                         <div class="action-buttons">
                             <?php if (isset($_SESSION['user_id'])): ?>
                                 <div class="ms-auto">
-                                    <button class="btn btn-primary me-2 reserve-button" data-property-id="${propertyId}" data-property-name="${propertyName}">
+                                    <button class="btn btn-primary me-2 reserve-button">
                                         <i class="fas fa-calendar-check"></i> Reserve
                                     </button>
                                     <button class="btn btn-outline-secondary add-to-favorites">
-                                        <i class="fas fa-heart" data-id="${propertyId}"></i>
+                                        <i class="fas fa-heart"></i>
                                     </button>
                                 </div>
                             <?php else: ?>
@@ -290,6 +290,124 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/ROME/tenant/includes/tab-header.php')
 
 <!-- Add before closing </body> tag -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+$(document).ready(function() {
+    // Handle property details modal
+    $('.view-details').click(function() {
+        const propertyData = {
+            id: $(this).data('id'),
+            name: $(this).data('name'),
+            rent: $(this).data('rent'),
+            rooms: $(this).data('rooms'),
+            address: $(this).data('address'),
+            description: $(this).data('description'),
+            vacant: $(this).data('vacant'),
+            reservationStatus: $(this).data('reservation-status')
+        };
+
+        // Update modal content
+        $('#modalDetailsContainer .property-title').text(propertyData.name);
+        $('#modalDetailsContainer .amount').text(propertyData.rent.toLocaleString());
+        $('#modalDetailsContainer .location').text(propertyData.address);
+        $('#modalDetailsContainer .rooms').text(propertyData.rooms);
+        $('#modalDetailsContainer .property-description').text(propertyData.description);
+
+        // Update reservation button
+        const reserveButton = $('#modalDetailsContainer .reserve-button');
+        reserveButton.data('property-id', propertyData.id);
+        reserveButton.data('property-name', propertyData.name);
+
+        // Handle reservation status
+        if (propertyData.reservationStatus) {
+            reserveButton.prop('disabled', true);
+            reserveButton.html('<i class="fas fa-clock"></i> ' + 
+                (propertyData.reservationStatus === 'pending' ? 'Reservation Pending' : 'Reserved'));
+        } else {
+            reserveButton.prop('disabled', false);
+            reserveButton.html('<i class="fas fa-calendar-check"></i> Reserve');
+        }
+    });
+
+    // Handle reservation button click
+    $('.reserve-button').click(function() {
+        const propertyId = $(this).data('property-id');
+        const propertyName = $(this).data('property-name');
+
+        if (!propertyId) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Invalid property selection. Please try again.'
+            });
+            return;
+        }
+
+        // Show confirmation dialog
+        Swal.fire({
+            title: 'Confirm Reservation',
+            text: `Are you sure you want to reserve ${propertyName}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Reserve',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading state
+                Swal.fire({
+                    title: 'Processing',
+                    text: 'Submitting your reservation...',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    willOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Submit reservation request
+                $.ajax({
+                    url: '../api/make_reservation.php',
+                    type: 'POST',
+                    data: {
+                        property_id: propertyId
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            // Custom success dialog
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Reservation Submitted!',
+                                text: 'Your reservation request has been submitted successfully and is pending approval.',
+                                confirmButtonText: 'OK',
+                                allowOutsideClick: false
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    location.reload();
+                                }
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Reservation Failed',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'An error occurred while processing your reservation. Please try again.'
+                        });
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
 
 <?php
 // Include common footer

@@ -19,18 +19,49 @@ try {
         throw new Exception("Database connection failed");
     }
 
-    // Fetch maintenance requests for this tenant - FIXED: changed tenant_id to user_id
+    // Fetch maintenance requests for this tenant with room details
     $stmt = $db->prepare("
-        SELECT * FROM maintenance_requests
-        WHERE user_id = :tenant_id
-        ORDER BY created_at DESC
+        SELECT 
+            m.*,
+            r.fullname as room_name,
+            r.address as room_address,
+            mc.comment as latest_comment,
+            mc.created_at as comment_date
+        FROM maintenance_requests m
+        LEFT JOIN room_rental_registrations r ON m.room_id = r.id
+        LEFT JOIN (
+            SELECT request_id, comment, created_at,
+                   ROW_NUMBER() OVER (PARTITION BY request_id ORDER BY created_at DESC) as rn
+            FROM maintenance_comments
+        ) mc ON m.id = mc.request_id AND mc.rn = 1
+        WHERE m.user_id = :tenant_id
+        ORDER BY m.created_at DESC
     ");
     $stmt->execute([':tenant_id' => $tenant_id]);
     $maintenance_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Get request statistics
+    $stmt = $db->prepare("
+        SELECT
+            COUNT(*) as total_requests,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+            SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_count,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count
+        FROM maintenance_requests
+        WHERE user_id = :tenant_id
+    ");
+    $stmt->execute([':tenant_id' => $tenant_id]);
+    $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+
 } catch (Exception $e) {
     $error_message = "Database error: " . $e->getMessage();
     $maintenance_requests = []; // Initialize as empty array to prevent undefined variable errors
+    $stats = [
+        'total_requests' => 0,
+        'pending_count' => 0,
+        'in_progress_count' => 0,
+        'completed_count' => 0
+    ];
 }
 ?>
 
@@ -46,128 +77,152 @@ try {
     </button>
 </div>
 
+<!-- Statistics Cards -->
 <div class="row">
-    <div class="col-lg-8">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">My Requests</h6>
-            </div>
+    <!-- Total Requests Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
             <div class="card-body">
-                <?php if (isset($error_message)): ?>
-                    <div class="alert alert-danger"><?php echo $error_message; ?></div>
-                <?php elseif (isset($maintenance_requests) && count($maintenance_requests) > 0): ?>
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="requestsTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Issue Type</th>
-                                    <th>Description</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
-                                    <th>Last Update</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach($maintenance_requests as $request): ?>
-                                <tr>
-                                    <td><?php echo $request['issue_type']; ?></td>
-                                    <td><?php echo substr($request['description'], 0, 50) . (strlen($request['description']) > 50 ? '...' : ''); ?></td>
-                                    <td>
-                                        <?php
-                                        switch($request['status']) {
-                                            case 'pending':
-                                                echo '<span class="badge badge-warning">Pending</span>';
-                                                break;
-                                            case 'in_progress':
-                                                echo '<span class="badge badge-info">In Progress</span>';
-                                                break;
-                                            case 'completed':
-                                                echo '<span class="badge badge-success">Completed</span>';
-                                                break;
-                                            case 'cancelled':
-                                                echo '<span class="badge badge-danger">Cancelled</span>';
-                                                break;
-                                            default:
-                                                echo '<span class="badge badge-secondary">Unknown</span>';
-                                        }
-                                        ?>
-                                    </td>
-                                    <td><?php echo date('M d, Y', strtotime($request['created_at'])); ?></td>
-                                    <td><?php echo date('M d, Y', strtotime($request['updated_at'])); ?></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-info" onclick="viewRequest(<?php echo $request['id']; ?>)">
-                                            <i class="fas fa-eye"></i> View
-                                        </button>
-                                        <?php if ($request['status'] == 'pending'): ?>
-                                        <button class="btn btn-sm btn-danger" onclick="cancelRequest(<?php echo $request['id']; ?>)">
-                                            <i class="fas fa-times"></i> Cancel
-                                        </button>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Requests</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $stats['total_requests']; ?></div>
                     </div>
-                <?php else: ?>
-                    <div class="text-center py-4">
-                        <i class="fas fa-tools fa-4x mb-3 text-gray-300"></i>
-                        <p>No maintenance requests found.</p>
-                        <button class="btn btn-primary" data-toggle="modal" data-target="#newRequestModal">Submit Request</button>
+                    <div class="col-auto">
+                        <i class="fas fa-tools fa-2x text-gray-300"></i>
                     </div>
-                <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="col-lg-4">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Request Status</h6>
-            </div>
+    <!-- Pending Requests Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
             <div class="card-body">
-                <div class="mb-4">
-                    <div class="small font-weight-bold">Pending <span class="float-right">
-                        <?php
-                        $pending_count = 0;
-                        $in_progress_count = 0;
-                        $completed_count = 0;
-
-                        if (isset($maintenance_requests)) {
-                            foreach ($maintenance_requests as $request) {
-                                if ($request['status'] == 'pending') $pending_count++;
-                                if ($request['status'] == 'in_progress') $in_progress_count++;
-                                if ($request['status'] == 'completed') $completed_count++;
-                            }
-
-                            $total_count = count($maintenance_requests);
-                            $pending_percent = $total_count > 0 ? round(($pending_count / $total_count) * 100) : 0;
-                            $in_progress_percent = $total_count > 0 ? round(($in_progress_count / $total_count) * 100) : 0;
-                            $completed_percent = $total_count > 0 ? round(($completed_count / $total_count) * 100) : 0;
-
-                            echo $pending_count;
-                        }
-                        ?>
-                    </span></div>
-                    <div class="progress mb-4">
-                        <div class="progress-bar bg-warning" role="progressbar" style="width: <?php echo $pending_percent; ?>%" aria-valuenow="<?php echo $pending_percent; ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $stats['pending_count']; ?></div>
                     </div>
-                </div>
-                <div class="mb-4">
-                    <div class="small font-weight-bold">In Progress <span class="float-right"><?php echo $in_progress_count; ?></span></div>
-                    <div class="progress mb-4">
-                        <div class="progress-bar bg-info" role="progressbar" style="width: <?php echo $in_progress_percent; ?>%" aria-valuenow="<?php echo $in_progress_percent; ?>" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <div class="small font-weight-bold">Completed <span class="float-right"><?php echo $completed_count; ?></span></div>
-                    <div class="progress mb-4">
-                        <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $completed_percent; ?>%" aria-valuenow="<?php echo $completed_percent; ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- In Progress Requests Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">In Progress</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $stats['in_progress_count']; ?></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-wrench fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completed Requests Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Completed</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $stats['completed_count']; ?></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Maintenance Requests Table -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">My Requests</h6>
+    </div>
+    <div class="card-body">
+        <?php if (isset($error_message)): ?>
+            <div class="alert alert-danger"><?php echo $error_message; ?></div>
+        <?php elseif (isset($maintenance_requests) && count($maintenance_requests) > 0): ?>
+            <div class="table-responsive">
+                <table class="table table-bordered" id="requestsTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Room</th>
+                            <th>Issue Type</th>
+                            <th>Description</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Latest Update</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($maintenance_requests as $request): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($request['room_name']); ?></td>
+                            <td><?php echo htmlspecialchars($request['issue_type']); ?></td>
+                            <td><?php echo htmlspecialchars(substr($request['description'], 0, 50)) . (strlen($request['description']) > 50 ? '...' : ''); ?></td>
+                            <td>
+                                <span class="badge badge-<?php 
+                                    echo $request['priority'] === 'high' ? 'danger' : 
+                                        ($request['priority'] === 'medium' ? 'warning' : 'info'); 
+                                ?>">
+                                    <?php echo ucfirst($request['priority']); ?>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-<?php 
+                                    echo $request['status'] === 'completed' ? 'success' : 
+                                        ($request['status'] === 'in_progress' ? 'info' : 
+                                        ($request['status'] === 'pending' ? 'warning' : 'secondary')); 
+                                ?>">
+                                    <?php echo ucfirst(str_replace('_', ' ', $request['status'])); ?>
+                                </span>
+                            </td>
+                            <td>
+                                <?php if ($request['latest_comment']): ?>
+                                    <small class="d-block"><?php echo htmlspecialchars($request['latest_comment']); ?></small>
+                                    <small class="text-muted"><?php echo date('M d, Y h:i A', strtotime($request['comment_date'])); ?></small>
+                                <?php else: ?>
+                                    <small class="text-muted">No updates yet</small>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="viewRequest(<?php echo $request['id']; ?>)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <?php if ($request['status'] === 'pending'): ?>
+                                <button class="btn btn-sm btn-danger" onclick="cancelRequest(<?php echo $request['id']; ?>)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php else: ?>
+            <div class="text-center py-4">
+                <i class="fas fa-tools fa-4x mb-3 text-gray-300"></i>
+                <p>No maintenance requests found.</p>
+                <button class="btn btn-primary" data-toggle="modal" data-target="#newRequestModal">Submit Request</button>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -249,217 +304,26 @@ try {
 
 <!-- JavaScript for maintenance functionality -->
 <script>
-function viewRequest(requestId) {
-    // Show modal with loading spinner
-    $('#viewRequestModal').modal('show');
-
-    // Fetch request details via AJAX
-    fetch(`../api/index.php?endpoint=maintenance&id=${requestId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                const request = data.data;
-                let statusBadge = '';
-
-                switch(request.status) {
-                    case 'pending':
-                        statusBadge = '<span class="badge badge-warning">Pending</span>';
-                        break;
-                    case 'in_progress':
-                        statusBadge = '<span class="badge badge-info">In Progress</span>';
-                        break;
-                    case 'completed':
-                        statusBadge = '<span class="badge badge-success">Completed</span>';
-                        break;
-                    case 'cancelled':
-                        statusBadge = '<span class="badge badge-danger">Cancelled</span>';
-                        break;
-                    default:
-                        statusBadge = '<span class="badge badge-secondary">Unknown</span>';
-                }
-
-                let priorityBadge = '';
-                switch(request.priority) {
-                    case 'low':
-                        priorityBadge = '<span class="badge badge-secondary">Low</span>';
-                        break;
-                    case 'medium':
-                        priorityBadge = '<span class="badge badge-info">Medium</span>';
-                        break;
-                    case 'high':
-                        priorityBadge = '<span class="badge badge-warning">High</span>';
-                        break;
-                    case 'emergency':
-                        priorityBadge = '<span class="badge badge-danger">Emergency</span>';
-                        break;
-                }
-
-                let html = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5>${request.issue_type}</h5>
-                            <p class="text-muted">Submitted on ${new Date(request.created_at).toLocaleDateString()}</p>
-                            <p><strong>Status:</strong> ${statusBadge}</p>
-                            <p><strong>Priority:</strong> ${priorityBadge}</p>
-                        </div>
-                        <div class="col-md-6">
-                            ${request.photo ? `<img src="${request.photo}" class="img-fluid rounded" alt="Issue Photo">` : ''}
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="row">
-                        <div class="col-12">
-                            <h6>Description</h6>
-                            <p>${request.description}</p>
-                        </div>
-                    </div>
-                `;
-
-                if (request.comments && request.comments.length > 0) {
-                    html += `
-                        <hr>
-                        <h6>Comments</h6>
-                        <div class="comments-section">
-                    `;
-
-                    request.comments.forEach(comment => {
-                        html += `
-                            <div class="comment mb-3">
-                                <div class="comment-header d-flex justify-content-between">
-                                    <strong>${comment.user_type === 'tenant' ? 'You' : 'Staff'}</strong>
-                                    <small class="text-muted">${new Date(comment.created_at).toLocaleString()}</small>
-                                </div>
-                                <div class="comment-body">
-                                    ${comment.comment}
-                                </div>
-                            </div>
-                        `;
-                    });
-
-                    html += `</div>`;
-                }
-
-                // Add comment form if request is not completed or cancelled
-                if (request.status !== 'completed' && request.status !== 'cancelled') {
-                    html += `
-                        <hr>
-                        <form id="commentForm">
-                            <div class="form-group">
-                                <label for="comment">Add Comment</label>
-                                <textarea class="form-control" id="comment" rows="2" required></textarea>
-                            </div>
-                            <button type="button" class="btn btn-primary btn-sm" onclick="addComment(${request.id})">Submit Comment</button>
-                        </form>
-                    `;
-                }
-
-                document.getElementById('requestDetailsContent').innerHTML = html;
-            } else {
-                document.getElementById('requestDetailsContent').innerHTML = `
-                    <div class="alert alert-danger">
-                        ${data.message || 'Failed to load request details'}
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('requestDetailsContent').innerHTML = `
-                <div class="alert alert-danger">
-                    An error occurred while loading the request details. Please try again.
-                </div>
-            `;
-        });
-}
-
-function cancelRequest(requestId) {
-    if (confirm('Are you sure you want to cancel this maintenance request?')) {
-        const formData = new FormData();
-        formData.append('id', requestId);
-        formData.append('action', 'cancel');
-
-        fetch('../api/index.php?endpoint=maintenance', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert('Request cancelled successfully');
-                location.reload();
-            } else {
-                alert(data.message || 'Failed to cancel request');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred. Please try again.');
-        });
-    }
-}
-
-function addComment(requestId) {
-    const comment = document.getElementById('comment').value.trim();
-
-    if (!comment) {
-        alert('Please enter a comment');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('request_id', requestId);
-    formData.append('comment', comment);
-    formData.append('action', 'add_comment');
-
-    fetch('../api/index.php?endpoint=maintenance', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            // Refresh the request details
-            viewRequest(requestId);
-        } else {
-            alert(data.message || 'Failed to add comment');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred. Please try again.');
-    });
-}
-
-// Handle maintenance request form submission
 $(document).ready(function() {
-    // Check if DataTable already exists and destroy it if it does
+    // Initialize DataTable
     if ($.fn.DataTable.isDataTable('#requestsTable')) {
         $('#requestsTable').DataTable().destroy();
     }
-
-    // Initialize DataTable
+    
     $('#requestsTable').DataTable({
-        order: [[4, 'desc']], // Sort by date column by default
         pageLength: 10,
-        responsive: true,
-        language: {
-            search: "Search requests:",
-            lengthMenu: "Show _MENU_ entries",
-            info: "Showing _START_ to _END_ of _TOTAL_ requests",
-            emptyTable: "No maintenance requests found"
-        },
-        columnDefs: [
-            { orderable: false, targets: -1 } // Disable sorting on action column
-        ]
+        order: [[3, 'desc']], // Sort by date column
+        responsive: true
     });
 
+    // Handle maintenance request form submission
     $('#maintenanceRequestForm').on('submit', function(e) {
         e.preventDefault();
 
         // Show loading state
         Swal.fire({
-            title: 'Submitting...',
-            text: 'Please wait while we submit your request',
+            title: 'Submitting Request',
+            text: 'Please wait while we process your request...',
             allowOutsideClick: false,
             showConfirmButton: false,
             willOpen: () => {
@@ -467,51 +331,40 @@ $(document).ready(function() {
             }
         });
 
-        // Get form data
-        var formData = new FormData(this);
+        // Create FormData object
+        const formData = new FormData(this);
 
         // Submit request
         $.ajax({
-            url: '/ROME/api/maintenance.php',
+            url: '../api/maintenance_request.php',
             type: 'POST',
             data: formData,
             processData: false,
             contentType: false,
             success: function(response) {
-                try {
-                    // Ensure response is properly parsed
-                    if (typeof response === 'string') {
-                        response = JSON.parse(response);
-                    }
-
-                    if (response.status === 'success') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: response.message || 'Maintenance request submitted successfully!'
-                        }).then(() => {
-                            $('#newRequestModal').modal('hide');
-                            location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: response.message || 'Failed to submit request'
-                        });
-                    }
-                } catch (e) {
-                    console.error('Response parsing error:', e);
+                if (response.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Request Submitted!',
+                        text: 'Your maintenance request has been submitted and is pending admin review.',
+                        confirmButtonText: 'OK'
+                    }).then((result) => {
+                        // Reset form and close modal
+                        $('#maintenanceRequestForm')[0].reset();
+                        $('#newRequestModal').modal('hide');
+                        // Reload page to show new request
+                        location.reload();
+                    });
+                } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'Invalid response from server. Please try again.'
+                        text: response.message || 'Failed to submit request. Please try again.'
                     });
                 }
             },
             error: function(xhr, status, error) {
-                console.error('AJAX Error:', error);
-                console.error('Response:', xhr.responseText);
+                console.error('Error:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -520,6 +373,94 @@ $(document).ready(function() {
             }
         });
     });
+
+    // View request details
+    window.viewRequest = function(requestId) {
+        Swal.fire({
+            title: 'Loading...',
+            text: 'Fetching request details',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: '../api/maintenance_request.php',
+            type: 'GET',
+            data: { action: 'view', id: requestId },
+            success: function(response) {
+                if (response.status === 'success') {
+                    const request = response.data;
+                    Swal.fire({
+                        title: 'Request Details',
+                        html: `
+                            <div class="text-left">
+                                <p><strong>Issue Type:</strong> ${request.issue_type}</p>
+                                <p><strong>Description:</strong> ${request.description}</p>
+                                <p><strong>Priority:</strong> ${request.priority}</p>
+                                <p><strong>Status:</strong> ${request.status}</p>
+                                <p><strong>Submitted:</strong> ${new Date(request.created_at).toLocaleString()}</p>
+                                ${request.photo ? `<img src="${request.photo}" class="img-fluid mt-3" alt="Issue Photo">` : ''}
+                                ${request.comments ? `
+                                    <hr>
+                                    <h6>Updates</h6>
+                                    <div class="comments-section">
+                                        ${request.comments.map(comment => `
+                                            <div class="comment mb-2">
+                                                <small class="text-muted">${new Date(comment.created_at).toLocaleString()}</small>
+                                                <p class="mb-1">${comment.comment}</p>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `,
+                        width: '600px'
+                    });
+                } else {
+                    Swal.fire('Error', response.message || 'Failed to fetch request details', 'error');
+                }
+            },
+            error: function() {
+                Swal.fire('Error', 'Failed to fetch request details', 'error');
+            }
+        });
+    };
+
+    // Cancel request
+    window.cancelRequest = function(requestId) {
+        Swal.fire({
+            title: 'Cancel Request',
+            text: 'Are you sure you want to cancel this maintenance request?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, cancel it',
+            cancelButtonText: 'No, keep it'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '../api/maintenance_request.php',
+                    type: 'POST',
+                    data: {
+                        action: 'cancel',
+                        id: requestId
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            Swal.fire('Cancelled!', 'Your request has been cancelled.', 'success')
+                                .then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', response.message || 'Failed to cancel request', 'error');
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Error', 'Failed to cancel request', 'error');
+                    }
+                });
+            }
+        });
+    };
 });
-</script>
 </script>

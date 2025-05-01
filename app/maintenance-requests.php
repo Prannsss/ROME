@@ -20,11 +20,26 @@ $stmt = $connect->prepare("
         m.priority,
         m.status,
         m.created_at,
-        m.updated_at
+        m.updated_at,
+        mc.comment as latest_comment,
+        mc.created_at as comment_date
     FROM maintenance_requests m
     LEFT JOIN users u ON m.user_id = u.id
     LEFT JOIN room_rental_registrations r ON m.room_id = r.id
-    ORDER BY m.created_at DESC
+    LEFT JOIN (
+        SELECT request_id, comment, created_at,
+               ROW_NUMBER() OVER (PARTITION BY request_id ORDER BY created_at DESC) as rn
+        FROM maintenance_comments
+    ) mc ON m.id = mc.request_id AND mc.rn = 1
+    ORDER BY 
+        CASE 
+            WHEN m.status = 'pending' THEN 1
+            WHEN m.status = 'in_progress' THEN 2
+            ELSE 3
+        END,
+        m.priority = 'emergency' DESC,
+        m.priority = 'high' DESC,
+        m.created_at DESC
 ");
 $stmt->execute();
 $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -54,11 +69,11 @@ $page_title = "Maintenance Requests";
     <!-- CSS Files -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap4.min.css" rel="stylesheet">
+    <link href="../assets/css/maintenance.css" rel="stylesheet">
     <style>
         <?php include('../assets/css/tabs.css'); ?>
     </style>
-    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap4.min.css" rel="stylesheet">
-    <link href="../assets/css/maintenance.css" rel="stylesheet">
 </head>
 <body>
     <div id="wrapper">
@@ -212,7 +227,10 @@ $page_title = "Maintenance Requests";
                                     </thead>
                                     <tbody>
                                         <?php foreach ($requests as $request): ?>
-                                        <tr>
+                                        <tr class="<?php 
+                                            echo $request['status'] === 'pending' && $request['priority'] === 'emergency' ? 'table-danger' : 
+                                                ($request['status'] === 'pending' && $request['priority'] === 'high' ? 'table-warning' : '');
+                                        ?>">
                                             <td><?php echo $request['id']; ?></td>
                                             <td><?php echo htmlspecialchars($request['tenant_name'] ?? 'N/A'); ?></td>
                                             <td><?php echo htmlspecialchars($request['room_name'] ?? 'N/A'); ?></td>
@@ -220,17 +238,18 @@ $page_title = "Maintenance Requests";
                                             <td><?php echo htmlspecialchars(substr($request['description'], 0, 50)) . (strlen($request['description']) > 50 ? '...' : ''); ?></td>
                                             <td>
                                                 <span class="badge badge-<?php
-                                                    echo $request['priority'] == 'high' ? 'danger' :
-                                                        ($request['priority'] == 'medium' ? 'warning' : 'info');
+                                                    echo $request['priority'] === 'emergency' ? 'danger' :
+                                                        ($request['priority'] === 'high' ? 'warning' :
+                                                        ($request['priority'] === 'medium' ? 'info' : 'secondary'));
                                                 ?>">
                                                     <?php echo ucfirst($request['priority']); ?>
                                                 </span>
                                             </td>
                                             <td>
                                                 <span class="badge badge-<?php
-                                                    echo $request['status'] == 'completed' ? 'success' :
-                                                        ($request['status'] == 'in_progress' ? 'info' :
-                                                        ($request['status'] == 'pending' ? 'warning' : 'secondary'));
+                                                    echo $request['status'] === 'completed' ? 'success' :
+                                                        ($request['status'] === 'in_progress' ? 'info' :
+                                                        ($request['status'] === 'pending' ? 'warning' : 'secondary'));
                                                 ?>">
                                                     <?php echo ucfirst(str_replace('_', ' ', $request['status'])); ?>
                                                 </span>
@@ -240,7 +259,7 @@ $page_title = "Maintenance Requests";
                                                 <button class="btn btn-sm btn-info view-request" data-id="<?php echo $request['id']; ?>" title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <?php if ($request['status'] != 'completed'): ?>
+                                                <?php if ($request['status'] !== 'completed'): ?>
                                                 <button class="btn btn-sm btn-primary update-status" data-id="<?php echo $request['id']; ?>" title="Update Status">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
@@ -261,184 +280,153 @@ $page_title = "Maintenance Requests";
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
 
     <script>
         $(document).ready(function() {
             // Initialize DataTable
-            $('#requestsTable').DataTable();
-
-            // Toggle sidebar
-            $("#sidebarToggleBtn").click(function(e) {
-                e.preventDefault();
-                $("#wrapper").toggleClass("sidebar-toggled");
-
-                // Store the toggle state
-                localStorage.setItem('sidebarToggled', $("#wrapper").hasClass("sidebar-toggled"));
+            const table = $('#requestsTable').DataTable({
+                pageLength: 10,
+                order: [[7, 'desc']], // Sort by date column
+                responsive: true,
+                language: {
+                    emptyTable: "No maintenance requests found",
+                    zeroRecords: "No matching requests found"
+                },
+                columnDefs: [
+                    {
+                        targets: -1,
+                        orderable: false,
+                        searchable: false
+                    }
+                ]
             });
 
-            // Check stored toggle state on page load
-            if (localStorage.getItem('sidebarToggled') === 'true') {
-                $("#wrapper").addClass("sidebar-toggled");
-            }
+            // View Request Details
+            $('.view-request').on('click', function() {
+                const requestId = $(this).data('id');
+                // Show modal with loading state
+                Swal.fire({
+                    title: 'Loading...',
+                    text: 'Please wait while we fetch the request details',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    willOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
 
-            // Handle responsive behavior
-            function checkWindowSize() {
-                if ($(window).width() < 768) {
-                    $("#wrapper").addClass("sidebar-toggled");
-                }
-            }
+                // Fetch request details
+                $.ajax({
+                    url: '/ROME/api/maintenance.php',
+                    type: 'GET',
+                    data: { action: 'view', id: requestId },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            const request = response.data;
+                            Swal.fire({
+                                title: 'Maintenance Request Details',
+                                html: `
+                                    <div class="text-left">
+                                        <p><strong>Tenant:</strong> ${request.tenant_name}</p>
+                                        <p><strong>Room:</strong> ${request.room_name}</p>
+                                        <p><strong>Issue Type:</strong> ${request.issue_type}</p>
+                                        <p><strong>Description:</strong> ${request.description}</p>
+                                        <p><strong>Priority:</strong> ${request.priority}</p>
+                                        <p><strong>Status:</strong> ${request.status}</p>
+                                        <p><strong>Created:</strong> ${new Date(request.created_at).toLocaleString()}</p>
+                                        ${request.photo ? `<img src="${request.photo}" class="img-fluid mt-3" alt="Issue Photo">` : ''}
+                                        ${request.comments ? `
+                                            <hr>
+                                            <h6>Comments</h6>
+                                            <div class="comments-section">
+                                                ${request.comments.map(comment => `
+                                                    <div class="comment mb-2">
+                                                        <small class="text-muted">${new Date(comment.created_at).toLocaleString()} - ${comment.user_type}</small>
+                                                        <p class="mb-1">${comment.comment}</p>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `,
+                                width: '600px'
+                            });
+                        } else {
+                            Swal.fire('Error', response.message || 'Failed to fetch request details', 'error');
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Error', 'Failed to fetch request details', 'error');
+                    }
+                });
+            });
 
-            // Check on load and resize
-            checkWindowSize();
-            $(window).resize(checkWindowSize);
+            // Update Request Status
+            $('.update-status').on('click', function() {
+                const requestId = $(this).data('id');
+                Swal.fire({
+                    title: 'Update Request Status',
+                    html: `
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select class="form-control" id="status">
+                                <option value="pending">Pending</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment">Comment</label>
+                            <textarea class="form-control" id="comment" rows="3" placeholder="Add a comment about this status update"></textarea>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Update',
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        const status = document.getElementById('status').value;
+                        const comment = document.getElementById('comment').value;
+
+                        if (!comment.trim()) {
+                            Swal.showValidationMessage('Please add a comment');
+                            return false;
+                        }
+
+                        return $.ajax({
+                            url: '/ROME/api/maintenance.php',
+                            type: 'POST',
+                            data: {
+                                action: 'update_status',
+                                id: requestId,
+                                status: status,
+                                comment: comment
+                            }
+                        }).then(response => {
+                            if (response.status === 'success') {
+                                return response;
+                            }
+                            throw new Error(response.message || 'Failed to update status');
+                        }).catch(error => {
+                            Swal.showValidationMessage(error.message);
+                        });
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Request status updated successfully'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    }
+                });
+            });
         });
     </script>
-
-    <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Toggle button functionality
-    const toggleBtn = document.getElementById('sidebarToggleBtn');
-    const wrapper = document.getElementById('wrapper');
-
-    // Check for saved state
-    const sidebarState = localStorage.getItem('sidebarState');
-    if (sidebarState === 'collapsed') {
-        wrapper.classList.add('toggled');
-    }
-
-    toggleBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        wrapper.classList.toggle('toggled');
-
-        // Save state
-        localStorage.setItem('sidebarState',
-            wrapper.classList.contains('toggled') ? 'collapsed' : 'expanded'
-        );
-    });
-});
-</script>
-
-<script>
-$(document).ready(function() {
-    // Destroy existing DataTable if it exists
-    if ($.fn.DataTable.isDataTable('#requestsTable')) {
-        $('#requestsTable').DataTable().destroy();
-    }
-
-    // Initialize DataTable
-    const table = $('#requestsTable').DataTable({
-        pageLength: 10,
-        responsive: true,
-        order: [[4, 'desc']], // Sort by date column
-        language: {
-            emptyTable: "No maintenance requests found",
-            zeroRecords: "No matching requests found"
-        },
-        columnDefs: [
-            {
-                targets: -1,
-                orderable: false,
-                searchable: false
-            }
-        ]
-    });
-
-    // View Request Details
-    $('.view-request').on('click', function() {
-        const requestId = $(this).data('id');
-        // Show modal with loading state
-        Swal.fire({
-            title: 'Loading...',
-            text: 'Please wait while we fetch the request details',
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            willOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        // Fetch request details
-        $.ajax({
-            url: '/ROME/api/maintenance.php',
-            type: 'GET',
-            data: { action: 'view', id: requestId },
-            success: function(response) {
-                if (response.status === 'success') {
-                    const request = response.data;
-                    Swal.fire({
-                        title: 'Maintenance Request Details',
-                        html: `
-                            <div class="text-left">
-                                <p><strong>Tenant:</strong> ${request.tenant_name}</p>
-                                <p><strong>Room:</strong> ${request.room_name}</p>
-                                <p><strong>Issue Type:</strong> ${request.issue_type}</p>
-                                <p><strong>Description:</strong> ${request.description}</p>
-                                <p><strong>Priority:</strong> ${request.priority}</p>
-                                <p><strong>Status:</strong> ${request.status}</p>
-                                <p><strong>Created:</strong> ${new Date(request.created_at).toLocaleString()}</p>
-                                ${request.photo ? `<img src="${request.photo}" class="img-fluid mt-3" alt="Issue Photo">` : ''}
-                            </div>
-                        `,
-                        width: '600px'
-                    });
-                } else {
-                    Swal.fire('Error', response.message || 'Failed to fetch request details', 'error');
-                }
-            },
-            error: function() {
-                Swal.fire('Error', 'Failed to fetch request details', 'error');
-            }
-        });
-    });
-
-    // Update Request Status
-    $('.update-status').on('click', function() {
-        const requestId = $(this).data('id');
-        Swal.fire({
-            title: 'Update Request Status',
-            input: 'select',
-            inputOptions: {
-                'pending': 'Pending',
-                'in_progress': 'In Progress',
-                'completed': 'Completed'
-            },
-            showCancelButton: true,
-            confirmButtonText: 'Update',
-            showLoaderOnConfirm: true,
-            preConfirm: (status) => {
-                return $.ajax({
-                    url: '/ROME/api/maintenance.php',
-                    type: 'POST',
-                    data: {
-                        action: 'update_status',
-                        id: requestId,
-                        status: status
-                    }
-                }).then(response => {
-                    if (response.status === 'success') {
-                        return response;
-                    }
-                    throw new Error(response.message || 'Failed to update status');
-                }).catch(error => {
-                    Swal.showValidationMessage(error.message);
-                });
-            },
-            allowOutsideClick: () => !Swal.isLoading()
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: 'Request status updated successfully'
-                }).then(() => {
-                    location.reload();
-                });
-            }
-        });
-    });
-});
-</script>
 </body>
 </html>
