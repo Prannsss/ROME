@@ -282,7 +282,7 @@ try {
                                 text: 'Your payment has been processed successfully.',
                                 showConfirmButton: true
                             }).then(() => {
-                                window.location.href = 'tabs/bills-tab.php';
+                                window.location.href = 'tabs/dashboard-tab.php?tab=bills';
                             });
                         } else {
                             Swal.fire({
